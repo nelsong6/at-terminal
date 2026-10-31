@@ -877,7 +877,7 @@ namespace winrt::TerminalApp::implementation
     // who will call WindowEmperor::CreateNewWindow.
     void TerminalPage::_OpenNewWindow(const INewContentArgs& contentArgs)
     {
-        if (!contentArgs)
+        if (!contentArgs || !_CanOpenPane())
         {
             return;
         }

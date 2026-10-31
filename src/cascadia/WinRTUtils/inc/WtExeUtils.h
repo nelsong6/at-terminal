@@ -4,7 +4,7 @@
 #pragma once
 
 constexpr std::wstring_view WtExe{ L"wt.exe" };
-constexpr std::wstring_view WtdExe{ L"wtd.exe" };
+constexpr std::wstring_view WtdExe{ L"at-terminal.exe" };
 constexpr std::wstring_view WindowsTerminalExe{ L"WindowsTerminal.exe" };
 constexpr std::wstring_view LocalAppDataAppsPath{ L"%LOCALAPPDATA%\\Microsoft\\WindowsApps\\" };
 constexpr std::wstring_view ElevateShimExe{ L"elevate-shim.exe" };
@@ -46,7 +46,7 @@ _TIL_INLINEPREFIX bool IsDevBuild()
                 const auto package = winrt::Windows::ApplicationModel::Package::Current();
                 const auto id = package.Id();
                 const auto name = id.FullName();
-                return til::starts_with(name, L"WindowsTerminalDev");
+                return til::starts_with(name, L"at-terminal_");
             }
             CATCH_LOG();
         }

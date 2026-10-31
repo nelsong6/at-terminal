@@ -1,0 +1,86 @@
+name: at-terminal
+# Builds at Terminal (the Dev branding, rebranded) for every PR, and publishes
+# each main commit as a signed release: the .msix and the certificate that
+# signs it.
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+permissions:
+  contents: write
+concurrency:
+  group: at-terminal-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    # Terminal 1.25 builds with Visual Studio 2026 (toolset v145); windows-2022 has 2022.
+    runs-on: windows-2025
+    timeout-minutes: 120
+    env:
+      VERSION: 1.25.${{ github.run_number }}.0
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          submodules: recursive
+      - uses: microsoft/setup-msbuild@v2
+        with:
+          msbuild-architecture: x64
+      - name: vcpkg from Visual Studio
+        run: |
+          $vs = & 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe' -requires Microsoft.VisualStudio.Component.Vcpkg -property installationPath -latest
+          if (-not $vs) { throw 'no Visual Studio with vcpkg' }
+          "VCPKG_ROOT=$(Join-Path $vs 'VC\vcpkg')" >> $env:GITHUB_ENV
+      - name: Restore NuGet
+        run: |
+          nuget restore build/packages.config -ConfigFile NuGet.Config -PackagesDirectory packages
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          msbuild OpenConsole.slnx /t:Restore /p:Platform=x64 /p:Configuration=Release /m
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          nuget restore dep/nuget/packages.config -ConfigFile NuGet.Config -PackagesDirectory packages
+      - name: VCToolsVersion
+        # Terminal's script sets it as an Azure DevOps variable; carry it into the build step here.
+        run: |
+          $out = .\build\scripts\Set-LatestVCToolsVersion.ps1
+          $v = ($out | Select-String 'Latest VCToolsVersion: (.+)').Matches[0].Groups[1].Value
+          if (-not $v) { throw "no VCToolsVersion in: $out" }
+          "VCToolsVersion=$v" >> $env:GITHUB_ENV
+      - name: Stamp the package version
+        run: |
+          $m = Join-Path $PWD 'src/cascadia/CascadiaPackage/Package-Dev.appxmanifest'
+          $x = [IO.File]::ReadAllText($m)
+          if ($x -notmatch 'Version="0\.0\.1\.0"') { throw "no Version=0.0.1.0 in $m" }
+          [IO.File]::WriteAllText($m, $x.Replace('Version="0.0.1.0"', "Version=`"$env:VERSION`""))
+      - name: Build
+        run: msbuild OpenConsole.slnx /m /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" /bl:msbuild.binlog
+      - name: Sign
+        env:
+          PFX: ${{ secrets.AT_TERMINAL_PFX }}
+          PFX_PASSWORD: ${{ secrets.AT_TERMINAL_PFX_PASSWORD }}
+        run: |
+          $msix = Get-ChildItem src/cascadia/CascadiaPackage/AppPackages -Recurse -Filter *.msix | Select-Object -First 1
+          if (-not $msix) { throw 'no .msix built' }
+          $signtool = Get-ChildItem 'C:\Program Files (x86)\Windows Kits\10\bin\*\x64\signtool.exe' | Sort-Object FullName -Descending | Select-Object -First 1
+          New-Item -ItemType Directory out | Out-Null
+          [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:PFX))
+          try {
+            Copy-Item $msix.FullName "out\at-terminal_$($env:VERSION)_x64.msix"
+            & $signtool.FullName sign /fd SHA256 /f cert.pfx /p $env:PFX_PASSWORD "out\at-terminal_$($env:VERSION)_x64.msix"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+            $pfx = [Security.Cryptography.X509Certificates.X509Certificate2]::new("$PWD\cert.pfx", $env:PFX_PASSWORD)
+            [IO.File]::WriteAllBytes("$PWD\out\at-terminal.cer", $pfx.Export('Cert'))
+          } finally { Remove-Item cert.pfx }
+      - uses: actions/upload-artifact@v4
+        with:
+          name: at-terminal
+          path: out/*
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: msbuild-binlog
+          path: msbuild.binlog
+      - name: Release
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "v$env:VERSION" out/* --repo $env:GITHUB_REPOSITORY --target $env:GITHUB_SHA --title "at Terminal $env:VERSION" --notes "Built from $env:GITHUB_SHA."

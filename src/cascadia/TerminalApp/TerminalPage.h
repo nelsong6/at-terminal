@@ -474,6 +474,7 @@ namespace winrt::TerminalApp::implementation
         std::shared_ptr<Pane> _MakeTerminalPane(const Microsoft::Terminal::Settings::Model::NewTerminalArgs& newTerminalArgs = nullptr,
                                                 const winrt::TerminalApp::Tab& sourceTab = nullptr,
                                                 winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection existingConnection = nullptr);
+        bool _CanOpenPane() const;
         std::shared_ptr<Pane> _MakePane(const Microsoft::Terminal::Settings::Model::INewContentArgs& newContentArgs = nullptr,
                                         const winrt::TerminalApp::Tab& sourceTab = nullptr,
                                         winrt::Microsoft::Terminal::TerminalConnection::ITerminalConnection existingConnection = nullptr);

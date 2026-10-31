@@ -636,25 +636,9 @@ namespace winrt::TerminalApp::implementation
     // - LaunchMode enum that indicates the launch mode
     LaunchMode TerminalWindow::GetLaunchMode()
     {
-        if (_contentBounds)
-        {
-            return LaunchMode::DefaultMode;
-        }
-
-        // GH#4620/#5801 - If the user passed --maximized or --fullscreen on the
-        // commandline, then use that to override the value from the settings.
-        const auto valueFromSettings = _settings.GlobalSettings().LaunchMode();
-        const auto valueFromCommandlineArgs = _appArgs ? _appArgs->ParsedArgs().GetLaunchMode() : std::nullopt;
-        if (const auto layout = LoadPersistedLayout())
-        {
-            if (layout.LaunchMode())
-            {
-                return layout.LaunchMode().Value();
-            }
-        }
-        return valueFromCommandlineArgs.has_value() ?
-                   valueFromCommandlineArgs.value() :
-                   valueFromSettings;
+        // at Terminal is only ever full screen, whatever the settings,
+        // commandline or saved layout say.
+        return LaunchMode::FullscreenMode;
     }
 
     // Method Description:
