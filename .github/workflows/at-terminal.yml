@@ -47,10 +47,10 @@ jobs:
           "VCToolsVersion=$v" >> $env:GITHUB_ENV
       - name: Stamp the package version
         run: |
-          $m = 'src/cascadia/CascadiaPackage/Package-Dev.appxmanifest'
-          $x = Get-Content -Raw $m
+          $m = Join-Path $PWD 'src/cascadia/CascadiaPackage/Package-Dev.appxmanifest'
+          $x = [IO.File]::ReadAllText($m)
           if ($x -notmatch 'Version="0\.0\.1\.0"') { throw "no Version=0.0.1.0 in $m" }
-          Set-Content -NoNewline $m ($x -replace 'Version="0\.0\.1\.0"', "Version=""$env:VERSION""")
+          [IO.File]::WriteAllText($m, $x.Replace('Version="0.0.1.0"', "Version=`"$env:VERSION`""))
       - name: Build
         run: msbuild OpenConsole.slnx /m /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" /bl:msbuild.binlog
       - name: Sign
