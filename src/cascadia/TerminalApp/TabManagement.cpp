@@ -201,6 +201,13 @@ namespace winrt::TerminalApp::implementation
     // - insertPosition: Optional parameter to indicate the position of tab.
     TerminalApp::Tab TerminalPage::_CreateNewTabFromPane(std::shared_ptr<Pane> pane, uint32_t insertPosition)
     {
+        // Content that doesn't come from _MakePane (the settings UI, a
+        // scratchpad) stops here.
+        if (pane && !_CanOpenPane())
+        {
+            pane->Close();
+            return nullptr;
+        }
         if (pane)
         {
             auto newTabImpl = winrt::make_self<Tab>(pane);
@@ -277,6 +284,12 @@ namespace winrt::TerminalApp::implementation
     // - tab: tab to duplicate
     void TerminalPage::_DuplicateTab(const Tab& tab)
     {
+        // There is always a tab to duplicate, so never room for its copy; going
+        // on would retitle the existing tab.
+        if (!_CanOpenPane())
+        {
+            return;
+        }
         try
         {
             // TODO: GH#5047 - We're duplicating the whole profile, which might

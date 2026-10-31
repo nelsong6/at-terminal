@@ -325,7 +325,8 @@ namespace winrt::TerminalApp::implementation
         _tabView = _tabRow.TabView();
         _rearranging = false;
 
-        const auto canDragDrop = CanDragDrop();
+        // Dragging the one tab out would make a second window.
+        const auto canDragDrop = false;
 
         _tabView.CanReorderTabs(canDragDrop);
         _tabView.CanDragTabs(canDragDrop);
@@ -782,6 +783,10 @@ namespace winrt::TerminalApp::implementation
         newTerminalArgs.Elevate(false);
 
         const auto newPane = _MakePane(newTerminalArgs, nullptr, std::move(connection));
+        if (!newPane)
+        {
+            co_return;
+        }
         newPane->WalkTree([](const auto& pane) {
             pane->FinalizeConfigurationGivenDefault();
         });
@@ -2398,6 +2403,12 @@ namespace winrt::TerminalApp::implementation
     // - true if the pane was successfully moved to the new tab.
     bool TerminalPage::_MovePane(MovePaneArgs args)
     {
+        // The one pane has nowhere to go: a move detaches it first, then
+        // finds no tab or window to take it.
+        if (!_CanOpenPane())
+        {
+            return false;
+        }
         const auto tabIdx{ args.TabIndex() };
         const auto windowId{ args.Window() };
 
@@ -2536,6 +2547,10 @@ namespace winrt::TerminalApp::implementation
 
     bool TerminalPage::_MoveTab(winrt::com_ptr<Tab> tab, MoveTabArgs args)
     {
+        if (!_CanOpenPane())
+        {
+            return false;
+        }
         if (!tab)
         {
             return false;
@@ -2701,6 +2716,14 @@ namespace winrt::TerminalApp::implementation
                                   const float splitSize,
                                   std::shared_ptr<Pane> newPane)
     {
+        if (!_CanOpenPane())
+        {
+            if (newPane)
+            {
+                newPane->Close();
+            }
+            return;
+        }
         auto activeTab = tab;
         // Clever hack for a crash in startup, with multiple sub-commands. Say
         // you have the following commandline:
@@ -3713,6 +3736,13 @@ namespace winrt::TerminalApp::implementation
         return resultPane;
     }
 
+    // at Terminal: a window holds one tab of one pane, its first. tmux does
+    // the multiplexing, so nothing opens a second tab, pane or window.
+    bool TerminalPage::_CanOpenPane() const
+    {
+        return _tabs.Size() == 0;
+    }
+
     // NOTE: callers of _MakePane should be able to accept nullptr as a return
     // value gracefully.
     std::shared_ptr<Pane> TerminalPage::_MakePane(const INewContentArgs& contentArgs,
@@ -3720,6 +3750,14 @@ namespace winrt::TerminalApp::implementation
                                                   TerminalConnection::ITerminalConnection existingConnection)
 
     {
+        if (!_CanOpenPane())
+        {
+            if (existingConnection)
+            {
+                existingConnection.Close();
+            }
+            return nullptr;
+        }
         const auto& newTerminalArgs{ contentArgs.try_as<NewTerminalArgs>() };
         if (contentArgs == nullptr || newTerminalArgs != nullptr || contentArgs.Type().empty())
         {
@@ -4377,6 +4415,11 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::SetFullscreen(bool newFullscreen)
     {
+        // at Terminal is only ever full screen (GetLaunchMode starts it so).
+        if (!newFullscreen)
+        {
+            return;
+        }
         if (_isFullscreen == newFullscreen)
         {
             return;
@@ -4698,6 +4741,12 @@ namespace winrt::TerminalApp::implementation
     // on another thread.
     void TerminalPage::_OpenElevatedWT(NewTerminalArgs newTerminalArgs)
     {
+        // An elevated window is another process, so the emperor's one-window
+        // rule can't stop it.
+        if (!_CanOpenPane())
+        {
+            return;
+        }
         // BODGY
         //
         // We're going to construct the commandline we want, then toss it to a

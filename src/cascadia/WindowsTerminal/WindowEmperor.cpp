@@ -248,6 +248,13 @@ void WindowEmperor::CreateNewWindow(winrt::TerminalApp::WindowRequestedArgs args
 {
     _assertIsMainThread();
 
+    // at Terminal has one window: a request for another brings it forward.
+    if (!_windows.empty())
+    {
+        _summonAllWindows();
+        return;
+    }
+
     uint64_t id = args.Id();
     bool needsNewId = id == 0;
     uint64_t newId = 0;
@@ -596,6 +603,18 @@ void WindowEmperor::_dispatchCommandline(winrt::TerminalApp::CommandlineArgs arg
 
     if (exitCode != 0)
     {
+        return;
+    }
+
+    // Launching at Terminal again, by any commandline, brings the one window
+    // forward and runs nothing in it.
+    if (!_windows.empty())
+    {
+        if (const auto connection = args.Connection())
+        {
+            connection.Close();
+        }
+        _summonAllWindows();
         return;
     }
 
