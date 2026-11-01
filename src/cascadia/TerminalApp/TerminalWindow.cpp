@@ -636,7 +636,7 @@ namespace winrt::TerminalApp::implementation
     // - LaunchMode enum that indicates the launch mode
     LaunchMode TerminalWindow::GetLaunchMode()
     {
-        // at Terminal is only ever full screen, whatever the settings,
+        // at-terminal is only ever full screen, whatever the settings,
         // commandline or saved layout say.
         return LaunchMode::FullscreenMode;
     }

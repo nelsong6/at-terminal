@@ -248,7 +248,7 @@ void WindowEmperor::CreateNewWindow(winrt::TerminalApp::WindowRequestedArgs args
 {
     _assertIsMainThread();
 
-    // at Terminal has one window: a request for another brings it forward.
+    // at-terminal has one window: a request for another brings it forward.
     if (!_windows.empty())
     {
         _summonAllWindows();
@@ -606,7 +606,7 @@ void WindowEmperor::_dispatchCommandline(winrt::TerminalApp::CommandlineArgs arg
         return;
     }
 
-    // Launching at Terminal again, by any commandline, brings the one window
+    // Launching at-terminal again, by any commandline, brings the one window
     // forward and runs nothing in it.
     if (!_windows.empty())
     {

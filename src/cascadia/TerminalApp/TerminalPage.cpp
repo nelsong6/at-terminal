@@ -3736,7 +3736,7 @@ namespace winrt::TerminalApp::implementation
         return resultPane;
     }
 
-    // at Terminal: a window holds one tab of one pane, its first. tmux does
+    // at-terminal: a window holds one tab of one pane, its first. tmux does
     // the multiplexing, so nothing opens a second tab, pane or window.
     bool TerminalPage::_CanOpenPane() const
     {
@@ -4415,7 +4415,7 @@ namespace winrt::TerminalApp::implementation
 
     void TerminalPage::SetFullscreen(bool newFullscreen)
     {
-        // at Terminal is only ever full screen (GetLaunchMode starts it so).
+        // at-terminal is only ever full screen (GetLaunchMode starts it so).
         if (!newFullscreen)
         {
             return;
