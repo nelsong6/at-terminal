@@ -1,3 +1,30 @@
+# at-terminal
+
+This fork lives on [Forgejo](https://forgejo.romaine.life/nelsong6/at-terminal).
+Its signed Windows packages are published on the [Forgejo releases page](https://forgejo.romaine.life/nelsong6/at-terminal/releases).
+GitHub is a push mirror. The Microsoft documentation below describes the upstream project.
+
+## Publishing at-terminal
+
+Every merged main commit runs `.forgejo/workflows/at-terminal.yml` on the Windows runner,
+builds and signs the x64 MSIX, then publishes a Forgejo release. Tags continue as
+`v1.25.<increment>.0`; assets remain `at-terminal_<version>_x64.msix` and `at-terminal.cer`.
+The signing certificate thumbprint is `FE35227FED82F2429AFE763A36358ADDD79C7A4F`.
+
+Publish through a checked Forgejo PR using the home PR tools:
+
+```powershell
+pr-ready.exe <PR-URL> --local <checkout> --no-auto-merge
+pr-merge.exe <PR-URL>
+```
+
+Home PCs take their configured version from this Forgejo release through `home-sync.exe`;
+`machine/state.json` in shell-config-profile-home pins the version and certificate.
+The installer checks the pinned certificate and package signature and defers an upgrade
+while an at-terminal window is running.
+
+---
+
 ![terminal-logos](https://github.com/microsoft/terminal/assets/91625426/333ddc76-8ab2-4eb4-a8c0-4d7b953b1179)
 
 [![Terminal Build Status](https://dev.azure.com/shine-oss/terminal/_apis/build/status%2FTerminal%20CI?branchName=main)](https://dev.azure.com/shine-oss/terminal/_build/latest?definitionId=1&branchName=main)
