@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
+    if: github.server_url == 'https://github.com'
     # Terminal 1.25 builds with Visual Studio 2026 (toolset v145); windows-2022 has 2022.
     runs-on: windows-2025
     timeout-minutes: 120
