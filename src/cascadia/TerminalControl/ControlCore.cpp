@@ -1196,6 +1196,26 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         {
             _refreshSizeUnderLock();
         }
+
+        FontSizeDeltaChanged.raise(*this, nullptr);
+    }
+
+    // Method Description:
+    // - Starts the control at a saved zoom. Call this before Initialize: it
+    //   sets the font the first layout measures, so nothing resizes afterwards.
+    // Arguments:
+    // - fontSizeDelta: The zoom, relative to the size in the settings.
+    void ControlCore::ApplyFontSizeDelta(float fontSizeDelta)
+    {
+        _accumulatedFontSizeDelta = fontSizeDelta;
+
+        const auto lock = _terminal->LockForWriting();
+        _setFontSizeUnderLock(_settings.FontSize() + _accumulatedFontSizeDelta);
+    }
+
+    float ControlCore::FontSizeDelta() const noexcept
+    {
+        return _accumulatedFontSizeDelta;
     }
 
     // Method Description:

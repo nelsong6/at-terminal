@@ -327,6 +327,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // "Bubbled" events - ones we want to handle, by raising our own event.
         _revokers.TitleChanged = _core.TitleChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleTitleChanged });
         _revokers.TabColorChanged = _core.TabColorChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleTabColorChanged });
+        _revokers.FontSizeDeltaChanged = _core.FontSizeDeltaChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleFontSizeDeltaChanged });
         _revokers.TaskbarProgressChanged = _core.TaskbarProgressChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleSetTaskbarProgress });
         _revokers.ConnectionStateChanged = _core.ConnectionStateChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleConnectionStateChanged });
         _revokers.ShowWindowChanged = _core.ShowWindowChanged(winrt::auto_revoke, { get_weak(), &TermControl::_bubbleShowWindowChanged });
@@ -2234,6 +2235,16 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     void TermControl::AdjustFontSize(float fontSizeDelta)
     {
         _core.AdjustFontSize(fontSizeDelta);
+    }
+
+    void TermControl::ApplyFontSizeDelta(float fontSizeDelta)
+    {
+        _core.ApplyFontSizeDelta(fontSizeDelta);
+    }
+
+    float TermControl::FontSizeDelta() const
+    {
+        return _core.FontSizeDelta();
     }
 
     void TermControl::_ScrollbarChangeHandler(const Windows::Foundation::IInspectable& /*sender*/,

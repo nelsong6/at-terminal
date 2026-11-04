@@ -19,6 +19,8 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   publisher `CN=at-terminal`, alias `at-terminal.exe`, its own settings under
   `%LOCALAPPDATA%\Packages\at-terminal_<hash>\LocalState`. `wt.exe` stays
   Microsoft's.
+- **Its text zoom lasts.** The zoom is saved in `state.json` (`fontSizeDelta`) when
+  it changes and reapplied before the first layout, so a restart keeps it.
 
 ## Build and release
 
@@ -26,7 +28,7 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 commit as a release `v1.25.<run>.0` holding the signed `.msix` and the
 certificate (`at-terminal.cer`) that signs it. It runs on upstairspc in one kept
 folder, `%LOCALAPPDATA%\at-terminal-ci\tree`, so only what changed recompiles;
-deleting that folder forces a full build (about 25 minutes). The signing certificate is
+deleting that folder forces a full build (about 25 minutes), and a build that fails starts clean once. The signing certificate is
 self-signed, in Key Vault `romaine-kv` (`at-terminal-signing-pfx`,
 `at-terminal-signing-password`) and the repo secrets `AT_TERMINAL_PFX` and
 `AT_TERMINAL_PFX_PASSWORD`.

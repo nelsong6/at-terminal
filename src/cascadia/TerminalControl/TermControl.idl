@@ -72,6 +72,7 @@ namespace Microsoft.Terminal.Control
         event Windows.Foundation.TypedEventHandler<Object, Object> HidePointerCursor;
         event Windows.Foundation.TypedEventHandler<Object, Object> RestorePointerCursor;
         event Windows.Foundation.TypedEventHandler<Object, Object> TabColorChanged;
+        event Windows.Foundation.TypedEventHandler<Object, Object> FontSizeDeltaChanged;
         event Windows.Foundation.TypedEventHandler<Object, Object> ReadOnlyChanged;
         event Windows.Foundation.TypedEventHandler<Object, Object> FocusFollowMouseRequested;
         event Windows.Foundation.TypedEventHandler<Object, WindowSizeChangedEventArgs> WindowSizeChanged;
@@ -124,6 +125,8 @@ namespace Microsoft.Terminal.Control
         void SearchMatch(Boolean goForward);
 
         void AdjustFontSize(Single fontSizeDelta);
+        void ApplyFontSizeDelta(Single fontSizeDelta);
+        Single FontSizeDelta { get; };
         void ResetFontSize();
 
         void ToggleShaderEffects();

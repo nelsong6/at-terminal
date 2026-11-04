@@ -1988,6 +1988,13 @@ namespace winrt::TerminalApp::implementation
 
         term.ShowWindowChanged({ get_weak(), &TerminalPage::_ShowWindowChangedHandler });
         term.SearchMissingCommand({ get_weak(), &TerminalPage::_SearchMissingCommandHandler });
+
+        term.FontSizeDeltaChanged([weakTerm = winrt::make_weak(term)](auto&&, auto&&) {
+            if (const auto term{ weakTerm.get() })
+            {
+                ApplicationState::SharedInstance().FontSizeDelta(term.FontSizeDelta());
+            }
+        });
         term.WindowSizeChanged({ get_weak(), &TerminalPage::_WindowSizeChanged });
 
         // Don't even register for the event if the feature is compiled off.
@@ -3573,6 +3580,8 @@ namespace winrt::TerminalApp::implementation
         // create here.
         const auto content = _manager.CreateCore(*settings.DefaultSettings(), settings.UnfocusedSettings().try_as<IControlAppearance>(), connection);
         const TermControl control{ content };
+        // at-terminal: the text zoom outlives the window, so a restart keeps it.
+        control.ApplyFontSizeDelta(ApplicationState::SharedInstance().FontSizeDelta());
         return _SetupControl(control);
     }
 

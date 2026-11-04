@@ -119,7 +119,13 @@ jobs:
         working-directory: ${{ env.TREE }}
         run: |
           msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          if ($LASTEXITCODE) {
+            # A kept tree has failed to link after an interface change (C1382,
+            # cause not yet known), so a failed build starts clean once.
+            Remove-Item -Recurse -Force obj, bin
+            msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
 
       - name: Sign
         working-directory: ${{ env.TREE }}

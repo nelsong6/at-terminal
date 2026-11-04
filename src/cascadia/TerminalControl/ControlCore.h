@@ -113,6 +113,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         void AdjustFontSize(float fontSizeDelta);
         void ResetFontSize();
+        void ApplyFontSizeDelta(float fontSizeDelta);
+        float FontSizeDelta() const noexcept;
         FontInfo GetFont() const;
         winrt::Windows::Foundation::Size FontSizeInDips() const;
 
@@ -278,6 +280,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         til::typed_event<IInspectable, Control::WriteToClipboardEventArgs> WriteToClipboard;
         til::typed_event<> WarningBell;
         til::typed_event<> TabColorChanged;
+        til::typed_event<> FontSizeDeltaChanged;
         til::typed_event<> BackgroundColorChanged;
         til::typed_event<IInspectable, Control::ScrollPositionChangedArgs> ScrollPositionChanged;
         til::typed_event<> TaskbarProgressChanged;

@@ -125,6 +125,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         void AdjustFontSize(float fontSizeDelta);
         void ResetFontSize();
+        void ApplyFontSizeDelta(float fontSizeDelta);
+        float FontSizeDelta() const;
         winrt::Windows::Foundation::Size GetFontSize() const;
 
         void SendInput(const winrt::hstring& input);
@@ -224,6 +226,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         // the core ever gets detached & reattached to another window.
         BUBBLED_FORWARDED_TYPED_EVENT(TitleChanged,             IInspectable, Control::TitleChangedEventArgs);
         BUBBLED_FORWARDED_TYPED_EVENT(TabColorChanged,          IInspectable, IInspectable);
+        BUBBLED_FORWARDED_TYPED_EVENT(FontSizeDeltaChanged,     IInspectable, IInspectable);
         BUBBLED_FORWARDED_TYPED_EVENT(SetTaskbarProgress,       IInspectable, IInspectable);
         BUBBLED_FORWARDED_TYPED_EVENT(ConnectionStateChanged,   IInspectable, IInspectable);
         BUBBLED_FORWARDED_TYPED_EVENT(ShowWindowChanged,        IInspectable, Control::ShowWindowArgs);
@@ -463,6 +466,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             Control::ControlCore::TitleChanged_revoker TitleChanged;
             Control::ControlCore::WriteToClipboard_revoker WriteToClipboard;
             Control::ControlCore::TabColorChanged_revoker TabColorChanged;
+            Control::ControlCore::FontSizeDeltaChanged_revoker FontSizeDeltaChanged;
             Control::ControlCore::TaskbarProgressChanged_revoker TaskbarProgressChanged;
             Control::ControlCore::ConnectionStateChanged_revoker ConnectionStateChanged;
             Control::ControlCore::ShowWindowChanged_revoker ShowWindowChanged;
