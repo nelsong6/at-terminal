@@ -29,6 +29,24 @@ jobs:
         with:
           submodules: recursive
 
+      # Every run builds in one kept folder on the runner, so only what changed
+      # recompiles and a merge of a built PR has almost nothing to do. git leaves
+      # unchanged files' timestamps alone and keeps ignored build output. Deleting
+      # the folder forces a full build.
+      - name: Move to the kept build tree
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $tree = Join-Path $env:LOCALAPPDATA 'at-terminal-ci\tree'
+          if (-not (Test-Path "$tree\.git")) { git init -q $tree }
+          git -C $tree fetch -q --depth=1 --no-tags $env:GITHUB_WORKSPACE HEAD
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          git -C $tree checkout -q --force FETCH_HEAD
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          git -C $tree clean -ffdq
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          Remove-Item -Recurse -Force -ErrorAction Ignore "$tree\out", "$tree\src\cascadia\CascadiaPackage\AppPackages"
+          "TREE=$tree" | Add-Content $env:GITHUB_ENV
+
       - name: Select Visual Studio 2026
         run: |
           $ErrorActionPreference = 'Stop'
@@ -80,6 +98,7 @@ jobs:
           "NUGET_EXE=$nuget" | Add-Content $env:GITHUB_ENV
 
       - name: Restore NuGet
+        working-directory: ${{ env.TREE }}
         run: |
           & $env:NUGET_EXE restore build/packages.config -ConfigFile NuGet.Config -PackagesDirectory packages
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -89,6 +108,7 @@ jobs:
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - name: Stamp the package version
+        working-directory: ${{ env.TREE }}
         run: |
           $manifest = Join-Path $PWD 'src/cascadia/CascadiaPackage/Package-Dev.appxmanifest'
           $text = [IO.File]::ReadAllText($manifest)
@@ -96,11 +116,13 @@ jobs:
           [IO.File]::WriteAllText($manifest, $text.Replace('Version="0.0.1.0"', "Version=`"$env:VERSION`""))
 
       - name: Build
+        working-directory: ${{ env.TREE }}
         run: |
-          msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" /bl:msbuild.binlog
+          msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
 
       - name: Sign
+        working-directory: ${{ env.TREE }}
         env:
           PFX: ${{ secrets.AT_TERMINAL_PFX }}
           PFX_PASSWORD: ${{ secrets.AT_TERMINAL_PFX_PASSWORD }}
@@ -120,6 +142,7 @@ jobs:
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
             $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new("$PWD\cert.pfx", $env:PFX_PASSWORD, [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
             try { [IO.File]::WriteAllBytes("$PWD\out\at-terminal.cer", $cert.Export('Cert')) } finally { $cert.Dispose() }
+            Copy-Item -Recurse out $env:GITHUB_WORKSPACE
           } finally { Remove-Item -LiteralPath cert.pfx -Force }
 
       - uses: https://data.forgejo.org/forgejo/upload-artifact@v4

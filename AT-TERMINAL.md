@@ -22,10 +22,11 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 
 ## Build and release
 
-`.github/workflows/at-terminal.yml` builds every PR and publishes each `main`
+`.forgejo/workflows/at-terminal.yml` builds every PR and publishes each `main`
 commit as a release `v1.25.<run>.0` holding the signed `.msix` and the
-certificate (`at-terminal.cer`) that signs it. It runs on `windows-2025`,
-which has Visual Studio 2026 (about 25 minutes). The signing certificate is
+certificate (`at-terminal.cer`) that signs it. It runs on upstairspc in one kept
+folder, `%LOCALAPPDATA%\at-terminal-ci\tree`, so only what changed recompiles;
+deleting that folder forces a full build (about 25 minutes). The signing certificate is
 self-signed, in Key Vault `romaine-kv` (`at-terminal-signing-pfx`,
 `at-terminal-signing-password`) and the repo secrets `AT_TERMINAL_PFX` and
 `AT_TERMINAL_PFX_PASSWORD`.
