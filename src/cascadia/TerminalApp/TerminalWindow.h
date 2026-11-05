@@ -193,6 +193,7 @@ namespace winrt::TerminalApp::implementation
                                    HRESULT settingsLoadedResult,
                                    const winrt::hstring& exceptionText);
         void _ShowLoadWarningsDialog(const IInspectable& sender, const Windows::Foundation::Collections::IVectorView<Microsoft::Terminal::Settings::Model::SettingsLoadWarnings>& warnings);
+        void _AppendStateProblems(const winrt::Windows::UI::Xaml::Controls::TextBlock& textBlock);
 
         void _RefreshThemeRoutine();
         void _OnLoaded(const IInspectable& sender, const Windows::UI::Xaml::RoutedEventArgs& eventArgs);

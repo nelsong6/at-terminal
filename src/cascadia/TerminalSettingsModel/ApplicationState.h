@@ -16,7 +16,7 @@ Abstract:
 #include "WindowLayout.g.h"
 
 #include <inc/cppwinrt_utils.h>
-#include <JsonUtils.h>
+#include "JsonUtils.h"
 
 namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 {
@@ -62,7 +62,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     {
         static Microsoft::Terminal::Settings::Model::ApplicationState SharedInstance();
 
-        ApplicationState(const std::filesystem::path& stateRoot) noexcept;
+        ApplicationState(const std::filesystem::path& stateRoot, bool elevated = ::Microsoft::Console::Utils::IsRunningElevated()) noexcept;
         ~ApplicationState();
 
         // Methods
@@ -75,6 +75,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         void AppendPersistedWindowLayout(Model::WindowLayout layout);
         bool DismissBadge(const hstring& badgeId);
         bool BadgeDismissed(const hstring& badgeId) const;
+        Windows::Foundation::Collections::IVector<hstring> TakeLoadProblems();
 
         // State getters/setters
 #define MTSM_APPLICATION_STATE_GEN(source, type, name, key, ...) \
@@ -89,14 +90,17 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 #define MTSM_APPLICATION_STATE_GEN(source, type, name, key, ...) std::optional<type> name{ __VA_ARGS__ };
             MTSM_APPLICATION_STATE_FIELDS(MTSM_APPLICATION_STATE_GEN)
 #undef MTSM_APPLICATION_STATE_GEN
+            std::vector<hstring> LoadProblems;
         };
         til::shared_mutex<state_t> _state;
         std::filesystem::path _sharedPath;
         std::filesystem::path _elevatedPath;
+        bool _elevated;
         til::throttled_func<> _throttler;
 
         void _write() const noexcept;
-        void _read() const noexcept;
+        bool _read() const noexcept;
+        bool _load(const std::filesystem::path& path, const std::string& data, FileSource source) const;
 
         Json::Value _toJsonWithBlob(Json::Value& root, FileSource parseSource) const noexcept;
 

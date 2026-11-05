@@ -21,6 +21,12 @@ static constexpr std::string_view InitialPositionKey{ "initialPosition" };
 static constexpr std::string_view InitialSizeKey{ "initialSize" };
 static constexpr std::string_view LaunchModeKey{ "launchMode" };
 
+static constexpr std::wstring_view badFileSuffix{ L".bad" };
+
+// Far past any zoom a person reaches, and small enough for the font code's math.
+static constexpr float maxFontSizeDelta{ 1024.f };
+static constexpr size_t maxDescribedValueLength{ 60 };
+
 namespace Microsoft::Terminal::Settings::Model::JsonUtils
 {
     using namespace winrt::Microsoft::Terminal::Settings::Model;
@@ -66,6 +72,40 @@ namespace Microsoft::Terminal::Settings::Model::JsonUtils
 
 using namespace ::Microsoft::Terminal::Settings::Model;
 
+static std::wstring _describeValue(const Json::Value& value)
+{
+    Json::StreamWriterBuilder builder;
+    builder["indentation"] = "";
+    auto text = Json::writeString(builder, value);
+    if (text.size() > maxDescribedValueLength)
+    {
+        text.resize(maxDescribedValueLength);
+        text += "...";
+    }
+    return til::u8u16(text);
+}
+
+// A value that can't be read leaves its field at the default and is noted for
+// the person at the screen, so one bad value costs only itself.
+template<typename T>
+static std::optional<T> _readField(const Json::Value& root, std::string_view key, std::vector<winrt::hstring>& problems)
+{
+    try
+    {
+        return JsonUtils::GetValueForKey<std::optional<T>>(root, key);
+    }
+    catch (const JsonUtils::DeserializationError& e)
+    {
+        problems.emplace_back(fmt::format(FMT_COMPILE(L"{}: expected {}, found {}"), til::u8u16(key), til::u8u16(e.expectedType), _describeValue(e.jsonValue)));
+    }
+    catch (...)
+    {
+        LOG_CAUGHT_EXCEPTION();
+        problems.emplace_back(fmt::format(FMT_COMPILE(L"{}: holds a value that can't be read"), til::u8u16(key)));
+    }
+    return std::nullopt;
+}
+
 namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 {
     winrt::hstring WindowLayout::ToJson(const Model::WindowLayout& layout)
@@ -93,9 +133,10 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         return trait.FromJson(root);
     }
 
-    ApplicationState::ApplicationState(const std::filesystem::path& stateRoot) noexcept :
+    ApplicationState::ApplicationState(const std::filesystem::path& stateRoot, const bool elevated) noexcept :
         _sharedPath{ stateRoot / stateFileName },
         _elevatedPath{ stateRoot / elevatedStateFileName },
+        _elevated{ elevated },
         _throttler{
             til::throttled_func_options{
                 .delay = std::chrono::seconds{ 1 },
@@ -105,7 +146,11 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
             [this]() { _write(); }
         }
     {
-        _read();
+        if (_read())
+        {
+            // The bad file has a copy now, so write it back without what was ignored.
+            _throttler();
+        }
     }
 
     // The destructor ensures that the last write is flushed to disk before returning.
@@ -146,50 +191,97 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     // elevated) into this ApplicationState.
     // * ANY errors during app state will result in the creation of a new empty state.
     // * ANY errors during runtime will result in changes being partially ignored.
-    void ApplicationState::_read() const noexcept
+    // * Everything that gets ignored is held for TakeLoadProblems.
+    // Returns true if a bad file was copied aside, so it's safe to rewrite it.
+    bool ApplicationState::_read() const noexcept
     try
     {
-        std::string errs;
-        std::unique_ptr<Json::CharReader> reader{ Json::CharReaderBuilder{}.newCharReader() };
+        auto keptBadFile = false;
 
         // First get shared state out of `state.json`.
         const auto sharedData = _readSharedContents();
         if (!sharedData.empty())
         {
-            Json::Value root;
-            if (!reader->parse(sharedData.data(), sharedData.data() + sharedData.size(), &root, &errs))
-            {
-                throw winrt::hresult_error(WEB_E_INVALID_JSON_STRING, winrt::to_hstring(errs));
-            }
-
             // - If we're elevated, we want to only load the Shared properties
             //   from state.json. We'll then load the Local props from
             //   `elevated-state.json`
             // - If we're unelevated, then load _everything_ from state.json.
-            if (::Microsoft::Console::Utils::IsRunningElevated())
+            if (_elevated)
             {
                 // Only load shared properties if we're elevated
-                FromJson(root, FileSource::Shared);
+                keptBadFile = _load(_sharedPath, sharedData, FileSource::Shared);
 
                 // Then, try and get anything in elevated-state
                 if (const auto localData{ _readLocalContents() }; !localData.empty())
                 {
-                    Json::Value root;
-                    if (!reader->parse(localData.data(), localData.data() + localData.size(), &root, &errs))
-                    {
-                        throw winrt::hresult_error(WEB_E_INVALID_JSON_STRING, winrt::to_hstring(errs));
-                    }
-                    FromJson(root, FileSource::Local);
+                    keptBadFile |= _load(_elevatedPath, localData, FileSource::Local);
                 }
             }
             else
             {
                 // If we're unelevated, then load everything.
-                FromJson(root, FileSource::Shared | FileSource::Local);
+                keptBadFile = _load(_sharedPath, sharedData, FileSource::Shared | FileSource::Local);
             }
         }
+        return keptBadFile;
     }
-    CATCH_LOG()
+    catch (...)
+    {
+        LOG_CAUGHT_EXCEPTION();
+        _state.lock()->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"{} could not be opened, so nothing saved in it was loaded"), _sharedPath.filename().native()));
+        return false;
+    }
+
+    // Loads one state file's contents. A file with problems loads whatever is
+    // good in it and gets a copy beside it, which is what's left of the bad
+    // values once the file is rewritten. Returns true if that copy was made.
+    bool ApplicationState::_load(const std::filesystem::path& path, const std::string& data, FileSource source) const
+    {
+        const auto fileName = path.filename().native();
+        const auto problemCount = [this]() { return _state.lock_shared()->LoadProblems.size(); };
+        const auto problemsBefore = problemCount();
+
+        std::string errs;
+        std::unique_ptr<Json::CharReader> reader{ Json::CharReaderBuilder{}.newCharReader() };
+        Json::Value root;
+
+        if (!reader->parse(data.data(), data.data() + data.size(), &root, &errs))
+        {
+            _state.lock()->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"{} is not valid JSON, so nothing saved in it was loaded: {}"), fileName, til::u8u16(errs)));
+        }
+        else if (!root.isObject())
+        {
+            _state.lock()->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"{} is not a JSON object, so nothing saved in it was loaded"), fileName));
+        }
+        else
+        {
+            FromJson(root, source);
+        }
+
+        if (problemCount() == problemsBefore)
+        {
+            return false;
+        }
+
+        auto badPath{ path };
+        badPath += badFileSuffix;
+        std::error_code ec;
+        std::filesystem::copy_file(path, badPath, std::filesystem::copy_options::overwrite_existing, ec);
+
+        const auto state = _state.lock();
+        if (ec)
+        {
+            state->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"{} could not be copied to {}, so it was left as it is"), fileName, badPath.native()));
+            return false;
+        }
+        state->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"{} as it was is kept at {}"), fileName, badPath.native()));
+        return true;
+    }
+
+    Windows::Foundation::Collections::IVector<hstring> ApplicationState::TakeLoadProblems()
+    {
+        return winrt::single_threaded_vector(std::exchange(_state.lock()->LoadProblems, {}));
+    }
 
     // Serialized this ApplicationState (in `context`) into the state.json at _path.
     // * Errors are only logged.
@@ -214,7 +306,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         //
         // After that's done, we'll write our Local properties into
         // elevated-state.json.
-        if (::Microsoft::Console::Utils::IsRunningElevated())
+        if (_elevated)
         {
             std::string errs;
             std::unique_ptr<Json::CharReader> reader{ Json::CharReaderBuilder{}.newCharReader() };
@@ -230,6 +322,10 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
                 {
                     throw winrt::hresult_error(WEB_E_INVALID_JSON_STRING, winrt::to_hstring(errs));
                 }
+            }
+            if (!root.isObject())
+            {
+                root = Json::Value{ Json::objectValue };
             }
             // Layer our shared properties on top of the blob from state.json,
             // and write it back out.
@@ -272,10 +368,17 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         // property, just skip it.
 #define MTSM_APPLICATION_STATE_GEN(source, type, name, key, ...) \
     if (WI_IsFlagSet(parseSource, source))                       \
-        state->name = JsonUtils::GetValueForKey<std::optional<type>>(root, key);
+        state->name = _readField<type>(root, key, state->LoadProblems);
 
         MTSM_APPLICATION_STATE_FIELDS(MTSM_APPLICATION_STATE_GEN)
 #undef MTSM_APPLICATION_STATE_GEN
+
+        // The negated test also catches NaN.
+        if (state->FontSizeDelta && !(std::abs(*state->FontSizeDelta) <= maxFontSizeDelta))
+        {
+            state->LoadProblems.emplace_back(fmt::format(FMT_COMPILE(L"fontSizeDelta: {} is outside -{} to {}"), *state->FontSizeDelta, maxFontSizeDelta, maxFontSizeDelta));
+            state->FontSizeDelta.reset();
+        }
     }
 
     Json::Value ApplicationState::ToJson(FileSource parseSource) const noexcept
@@ -380,7 +483,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     //   permissions, so we don't potentially read malicious data.
     std::string ApplicationState::_readLocalContents() const
     {
-        return ::Microsoft::Console::Utils::IsRunningElevated() ?
+        return _elevated ?
                    til::io::read_file_as_utf8_string_if_exists(_elevatedPath, true) :
                    til::io::read_file_as_utf8_string_if_exists(_sharedPath, false);
     }
@@ -401,7 +504,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
     //   will atomically write to `user-state.json`
     void ApplicationState::_writeLocalContents(const std::string_view content) const
     {
-        if (::Microsoft::Console::Utils::IsRunningElevated())
+        if (_elevated)
         {
             // DON'T use til::io::write_utf8_string_to_file_atomic, which will write to a temporary file
             // then rename that file to the final filename. That actually lets us

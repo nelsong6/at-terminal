@@ -455,6 +455,8 @@ namespace winrt::TerminalApp::implementation
         usingDefaultsRun.Text(usingDefaultsText);
         warningsTextBlock.Inlines().Append(Documents::LineBreak{});
         warningsTextBlock.Inlines().Append(usingDefaultsRun);
+        warningsTextBlock.Inlines().Append(Documents::LineBreak{});
+        _AppendStateProblems(warningsTextBlock);
 
         Controls::ContentDialog dialog;
         dialog.Title(winrt::box_value(title));
@@ -494,6 +496,12 @@ namespace winrt::TerminalApp::implementation
             }
         }
 
+        _AppendStateProblems(warningsTextBlock);
+        if (warningsTextBlock.Inlines().Size() == 0)
+        {
+            return;
+        }
+
         Controls::ContentDialog dialog;
         dialog.Title(winrt::box_value(title));
         dialog.Content(winrt::box_value(warningsTextBlock));
@@ -501,6 +509,31 @@ namespace winrt::TerminalApp::implementation
         dialog.DefaultButton(Controls::ContentDialogButton::Close);
 
         ShowDialog(dialog);
+    }
+
+    // Method Description:
+    // - Lists what the state files held that couldn't be loaded. Both load
+    //   dialogs do this, since showing a second dialog dismisses the first.
+    // Arguments:
+    // - textBlock: the dialog's text, to add to.
+    void TerminalWindow::_AppendStateProblems(const Controls::TextBlock& textBlock)
+    {
+        const auto problems = ApplicationState::SharedInstance().TakeLoadProblems();
+        if (problems.Size() == 0)
+        {
+            return;
+        }
+
+        winrt::Windows::UI::Xaml::Documents::Run introRun;
+        introRun.Text(RS_(L"StateProblemsText"));
+        textBlock.Inlines().Append(introRun);
+        textBlock.Inlines().Append(Documents::LineBreak{});
+
+        for (const auto& problem : problems)
+        {
+            textBlock.Inlines().Append(_BuildErrorRun(problem, winrt::WUX::Application::Current().as<::winrt::TerminalApp::App>().Resources()));
+            textBlock.Inlines().Append(Documents::LineBreak{});
+        }
     }
 
     // Method Description:
@@ -521,8 +554,9 @@ namespace winrt::TerminalApp::implementation
             const winrt::hstring textKey = USES_RESOURCE(L"InitialJsonParseErrorText");
             _ShowLoadErrorsDialog(titleKey, textKey, settingsLoadedResult, _initialLoadResult.ExceptionText());
         }
-        else if (settingsLoadedResult == S_FALSE)
+        else
         {
+            // Even a clean load of the settings can have state problems to show.
             _ShowLoadWarningsDialog(nullptr, _initialLoadResult.Warnings());
         }
     }

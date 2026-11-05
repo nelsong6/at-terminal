@@ -35,6 +35,9 @@ namespace Microsoft.Terminal.Settings.Model
         Boolean DismissBadge(String badgeId);
         Boolean BadgeDismissed(String badgeId);
 
+        // What the state files held that couldn't be loaded, once: it's empty after this.
+        Windows.Foundation.Collections.IVector<String> TakeLoadProblems();
+
         String SettingsHash;
         Windows.Foundation.Collections.IVector<WindowLayout> PersistedWindowLayouts;
         Windows.Foundation.Collections.IVector<String> RecentCommands;

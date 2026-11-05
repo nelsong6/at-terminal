@@ -149,6 +149,9 @@
   <data name="SettingsValidateErrorTitle" xml:space="preserve">
     <value>Encountered errors while loading user settings</value>
   </data>
+  <data name="StateProblemsText" xml:space="preserve">
+    <value>Saved state in state.json couldn't be read. It was ignored, so these values are back to their defaults:</value>
+  </data>
   <data name="Ok" xml:space="preserve">
     <value>OK</value>
   </data>

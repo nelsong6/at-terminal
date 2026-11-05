@@ -130,6 +130,16 @@ jobs:
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
 
+      # Its own step so that a test that won't build or pass fails the run without
+      # the build step's clean start.
+      - name: Test the state file reader
+        working-directory: ${{ env.TREE }}
+        run: |
+          msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\Tests\SettingsModel_UnitTests" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          & bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /name:*ApplicationStateTests*
+          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+
       - name: Sign
         working-directory: ${{ env.TREE }}
         env:

@@ -21,6 +21,11 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   Microsoft's.
 - **Its text zoom lasts.** The zoom is saved in `state.json` (`fontSizeDelta`) when
   it changes and reapplied before the first layout, so a restart keeps it.
+- **A bad state file doesn't stop it opening.** Stock Windows Terminal crashes on
+  launch when any value in `state.json` can't be read. Here that value keeps its
+  default and the rest of the file loads. A file with a problem is copied to
+  `state.json.bad` and rewritten without what was ignored, and the first window
+  lists the problems in a dialog. Tests: `ApplicationStateTests`, run by CI.
 
 ## Build and release
 
