@@ -13,6 +13,9 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   `TerminalPage::_CanOpenPane`, and `WindowEmperor` refuses a second window.
 - **Launching it again** (by any commandline) brings the open window forward
   and runs nothing in it.
+- **Launching it comes to the front.** When Windows refuses the first window
+  the foreground, as it does a program started by a background process, the
+  window takes it the way the summon key does.
 - **Always full screen.** `GetLaunchMode` is always full screen, and nothing
   leaves it (F11 and Alt+Enter do nothing).
 - **Its own package.** The Dev branding, renamed: identity `at-terminal`,

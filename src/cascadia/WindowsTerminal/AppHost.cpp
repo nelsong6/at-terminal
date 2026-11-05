@@ -1219,9 +1219,11 @@ safe_void_coroutine AppHost::_WindowInitializedHandler(const winrt::Windows::Fou
                               nCmdShow == SW_SHOWMINNOACTIVE ||
                               nCmdShow == SW_SHOWNA ||
                               nCmdShow == SW_FORCEMINIMIZE;
-    if (!noForeground)
+    if (!noForeground && !SetForegroundWindow(_window->GetHandle()))
     {
-        SetForegroundWindow(_window->GetHandle());
+        // at-terminal: Windows refuses a program started by a background
+        // process, such as the tmux server opening it for Win+`.
+        _window->SummonWindow(nullptr);
     }
 
     // Don't set our state to Initialized until after the call to ShowWindow.
