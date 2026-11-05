@@ -24,6 +24,7 @@ jobs:
       VCPKG_MAX_CONCURRENCY: "4"
       CMAKE_BUILD_PARALLEL_LEVEL: "4"
       _CL_: /MP4
+      DOCKER_HOST: npipe:////./pipe/docker_engine
     steps:
       - uses: actions/checkout@v4
         with:
@@ -50,20 +51,22 @@ jobs:
           Remove-Item -Recurse -Force -ErrorAction Ignore "$tree\out", "$tree\src\cascadia\CascadiaPackage\AppPackages"
           "TREE=$tree" | Add-Content $env:GITHUB_ENV
 
-      - name: Select Visual Studio 2026
+      # Restore, build and test run in a Windows container with the kept folder
+      # mounted. The image is rebuilt only when its files change.
+      - name: Container image
+        working-directory: ${{ env.TREE }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $vswhere = 'C:\Program Files (x86)\Microsoft Visual Studio\Installer\vswhere.exe'
-          $vs = & $vswhere -all -products * -version '[18.0,19.0)' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath -latest
-          if (-not $vs) { throw 'Visual Studio 2026 with v145 is required on the Windows runner' }
-          $version = (Get-Content "$vs\VC\Auxiliary\Build\Microsoft.VCToolsVersion.default.txt").Trim()
-          if (-not (Test-Path "$vs\VC\Tools\MSVC\$version\bin\Hostx64\x64\cl.exe")) { throw 'The selected C++ compiler is missing' }
-          if (-not (Test-Path "$vs\MSBuild\Microsoft\DesktopBridge\Microsoft.DesktopBridge.props")) { throw 'MSIX packaging build tools are missing' }
-          "$vs\MSBuild\Current\Bin\amd64", "$vs\MSBuild\Current\Bin" | Add-Content $env:GITHUB_PATH
-          "VSINSTALLDIR=$vs\", 'VisualStudioVersion=18.0', "VCToolsVersion=$version", "VCPKG_ROOT=$vs\VC\vcpkg" | Add-Content $env:GITHUB_ENV
-          Write-Host "Visual Studio: $vs; VCToolsVersion: $version"
-          & "$vs\MSBuild\Current\Bin\MSBuild.exe" -nologo -version
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          $docker = 'C:\Program Files\at-home\docker\current\docker.exe'
+          $hashes = (Get-FileHash .forgejo/container/Dockerfile, .forgejo/container/.vsconfig).Hash -join ''
+          $id = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($hashes))).Substring(0, 12).ToLower()
+          $image = "at-terminal-build:$id"
+          & $docker image inspect $image *> $null
+          if ($LASTEXITCODE) {
+            & $docker build --isolation=process -m 12g -t $image .forgejo/container
+            if ($LASTEXITCODE) { exit $LASTEXITCODE }
+          }
+          "DOCKER=$docker", "IMAGE=$image" | Add-Content $env:GITHUB_ENV
 
       - name: Select package version
         env:
@@ -102,13 +105,7 @@ jobs:
 
       - name: Restore NuGet
         working-directory: ${{ env.TREE }}
-        run: |
-          & $env:NUGET_EXE restore build/packages.config -ConfigFile NuGet.Config -PackagesDirectory packages
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          msbuild src/cascadia/CascadiaPackage/CascadiaPackage.wapproj /t:Restore /p:Platform=x64 /p:Configuration=Release /p:WindowsTerminalBranding=Dev "/p:SolutionDir=$PWD\" /m:4
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          & $env:NUGET_EXE restore dep/nuget/packages.config -ConfigFile NuGet.Config -PackagesDirectory packages
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        run: ./.forgejo/container/run.ps1 restore
 
       - name: Stamp the package version
         working-directory: ${{ env.TREE }}
@@ -121,24 +118,14 @@ jobs:
       - name: Build
         working-directory: ${{ env.TREE }}
         run: |
-          msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
-          if ($LASTEXITCODE) {
-            # A kept tree has failed to link after an interface change (C1382,
-            # cause not yet known), so a failed build starts clean once.
-            Remove-Item -Recurse -Force obj, bin
-            msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\CascadiaPackage" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
-            if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          }
+          ./.forgejo/container/run.ps1 build
+          $code = $LASTEXITCODE
+          Copy-Item msbuild.binlog $env:GITHUB_WORKSPACE -ErrorAction Ignore
+          exit $code
 
-      # Its own step so that a test that won't build or pass fails the run without
-      # the build step's clean start.
       - name: Test the state file reader
         working-directory: ${{ env.TREE }}
-        run: |
-          msbuild OpenConsole.slnx /m:4 /p:Configuration=Release /p:Platform=x64 /p:WindowsTerminalBranding=Dev /p:AppxPackageSigningEnabled=false "/t:Terminal\Tests\SettingsModel_UnitTests" "/bl:$env:GITHUB_WORKSPACE\msbuild.binlog"
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
-          & bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /name:*ApplicationStateTests*
-          if ($LASTEXITCODE) { exit $LASTEXITCODE }
+        run: ./.forgejo/container/run.ps1 test
 
       - name: Sign
         working-directory: ${{ env.TREE }}

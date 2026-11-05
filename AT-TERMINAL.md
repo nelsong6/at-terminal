@@ -33,7 +33,10 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 commit as a release `v1.25.<run>.0` holding the signed `.msix` and the
 certificate (`at-terminal.cer`) that signs it. It runs on upstairspc in one kept
 folder, `%USERPROFILE%\at-terminal-ci\tree`, so only what changed recompiles;
-deleting that folder forces a full build (about 25 minutes), and a build that fails starts clean once. The signing certificate is
+deleting that folder forces a full build (about 12 minutes). Restore, build and
+tests run in a Windows container with that folder mounted, from the image in
+`.forgejo/container` (about 15 minutes to build, only when its files change, and
+25 GB). Signing stays on the host. The signing certificate is
 self-signed, in Key Vault `romaine-kv` (`at-terminal-signing-pfx`,
 `at-terminal-signing-password`) and the repo secrets `AT_TERMINAL_PFX` and
 `AT_TERMINAL_PFX_PASSWORD`.
