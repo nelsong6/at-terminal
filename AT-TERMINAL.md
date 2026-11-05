@@ -27,7 +27,7 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 `.forgejo/workflows/at-terminal.yml` builds every PR and publishes each `main`
 commit as a release `v1.25.<run>.0` holding the signed `.msix` and the
 certificate (`at-terminal.cer`) that signs it. It runs on upstairspc in one kept
-folder, `%LOCALAPPDATA%\at-terminal-ci\tree`, so only what changed recompiles;
+folder, `%USERPROFILE%\at-terminal-ci\tree`, so only what changed recompiles;
 deleting that folder forces a full build (about 25 minutes), and a build that fails starts clean once. The signing certificate is
 self-signed, in Key Vault `romaine-kv` (`at-terminal-signing-pfx`,
 `at-terminal-signing-password`) and the repo secrets `AT_TERMINAL_PFX` and

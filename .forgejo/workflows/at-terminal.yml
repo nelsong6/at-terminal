@@ -33,10 +33,13 @@ jobs:
       # recompiles and a merge of a built PR has almost nothing to do. git leaves
       # unchanged files' timestamps alone and keeps ignored build output. Deleting
       # the folder forces a full build.
+      # MSBuild's tracking logs drop files under AppData or Temp unless they sit in
+      # the project's own folder, and obj and bin never do, so the folder stays
+      # outside AppData.
       - name: Move to the kept build tree
         run: |
           $ErrorActionPreference = 'Stop'
-          $tree = Join-Path $env:LOCALAPPDATA 'at-terminal-ci\tree'
+          $tree = Join-Path $env:USERPROFILE 'at-terminal-ci\tree'
           if (-not (Test-Path "$tree\.git")) { git init -q $tree }
           git -C $tree fetch -q --depth=1 --no-tags $env:GITHUB_WORKSPACE HEAD
           if ($LASTEXITCODE) { exit $LASTEXITCODE }
