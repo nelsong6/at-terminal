@@ -30,6 +30,14 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   `state.json.bad` and rewritten without what was ignored, and the first window
   lists the problems in a dialog. Tests: `ApplicationStateTests`, run by CI.
 
+- **It keeps a log.** `at-terminal.log` in `LocalState`, one of the home logs
+  (`appLogs` in the home profile's `machine/state.json`): start and exit, the tmux
+  server it connected to, that connection failing or ending and how, and crashes.
+  Lines hold fixed words, numbers and program names, never anything from the
+  terminal; `AtLogTests` holds them to that, and all of it lives in
+  `src/cascadia/inc/AtLog.h`. A fail fast or a kill leaves no line of its own, so
+  the next start says the previous run ended without saying how.
+
 ## Build and release
 
 `.forgejo/workflows/at-terminal.yml` builds every PR and publishes each `main`

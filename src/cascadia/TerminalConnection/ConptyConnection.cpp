@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "ConptyConnection.h"
 
+#include <AtLog.h>
 #include <conpty-static.h>
 #include <winmeta.h>
 
@@ -475,11 +476,13 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
         LOG_IF_FAILED(SetThreadDescription(_hOutputThread.get(), L"ConptyConnection Output Thread"));
 
         _transitionToState(ConnectionState::Connected);
+        at_log::Connected(_commandline.c_str(), _piClient.dwProcessId);
     }
     catch (...)
     {
         // EXIT POINT
         const auto hr = wil::ResultFromCaughtException();
+        at_log::ConnectFailed(_commandline.c_str(), hr);
 
         // GH#11556 - make sure to format the error code to this string as an UNSIGNED int
         auto failureText = RS_fmt(L"ProcessFailedToLaunch", _formatStatus(hr), _commandline);
@@ -539,6 +542,7 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
     {
         DWORD exitCode{ 0 };
         GetExitCodeProcess(_piClient.hProcess, &exitCode);
+        at_log::ConnectionEnded(exitCode, _isStateAtOrBeyond(ConnectionState::Closing));
 
         _piClient.reset();
 

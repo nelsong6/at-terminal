@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "WindowEmperor.h"
 
+#include <AtLog.h>
 #include <CoreWindow.h>
 #include <ScopedResourceLoader.h>
 #include <WtExeUtils.h>
@@ -366,9 +367,12 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     {
         // The command line has been handed off. We can now exit.
         // We do it with TerminateProcess() primarily to avoid WinUI shutdown issues.
+        at_log::Write("handed off to the running window");
         TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
         __assume(false);
     }
+
+    at_log::Start();
 
     // !! LOAD BEARING !!
     // This prevents loader lock contention with some versions of the nvidia
@@ -548,6 +552,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     // We also need to ensure that all UI threads exit before WindowEmperor leaves the scope on the main thread (MSFT:46744208).
     // Both problems can be solved and the shutdown accelerated by using TerminateProcess.
     // std::exit(), etc., cannot be used here, because those use ExitProcess for unpackaged applications.
+    at_log::Write("exit");
     TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
     __assume(false);
 }
@@ -1057,6 +1062,7 @@ LRESULT WindowEmperor::_messageHandler(HWND window, UINT const message, WPARAM c
             RegisterApplicationRestart(nullptr, RESTART_NO_CRASH | RESTART_NO_HANG);
             return TRUE;
         case WM_ENDSESSION:
+            at_log::Write("session ending");
             _finalizeSessionPersistence();
             _skipPersistence = true;
             PostQuitMessage(0);
