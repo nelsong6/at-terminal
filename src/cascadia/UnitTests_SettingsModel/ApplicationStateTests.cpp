@@ -18,12 +18,11 @@ namespace SettingsModelUnitTests
 {
     // Every field, with a value of the wrong type. A new field has to be added
     // here: ApplicationStateTests::WrongTypeInAnyField checks the count.
-    static constexpr std::array<std::pair<std::string_view, std::string_view>, 9> wrongTypes{ {
+    static constexpr std::array<std::pair<std::string_view, std::string_view>, 8> wrongTypes{ {
         { "settingsHash", "5" },
         { "generatedProfiles", "true" },
         { "persistedWindowLayouts", "5" },
         { "recentCommands", "5" },
-        { "dismissedMessages", "5" },
         { "allowedCommandlines", "5" },
         { "dismissedBadges", "5" },
         { "sshFolderGenerated", R"("yes")" },
@@ -54,6 +53,7 @@ namespace SettingsModelUnitTests
 
         TEST_METHOD(GoodFileLoadsWithoutProblems);
         TEST_METHOD(NullIsNoValue);
+        TEST_METHOD(DismissedMessagesFromAnEarlierBuildIsIgnored);
         TEST_METHOD(TheIncidentFile);
         TEST_METHOD(WrongTypeInAnyField);
         TEST_METHOD(WrongTypeInEveryField);
@@ -173,6 +173,16 @@ namespace SettingsModelUnitTests
         }
     }
 
+    // Earlier builds kept this field, so a file holding it is not a bad file.
+    void ApplicationStateTests::DismissedMessagesFromAnEarlierBuildIsIgnored()
+    {
+        _write(R"({"dismissedMessages":["closeOnExitInfo"],"fontSizeDelta":-2})");
+
+        const auto state = _load();
+        VERIFY_ARE_EQUAL(0u, state->TakeLoadProblems().Size());
+        VERIFY_ARE_EQUAL(-2.f, state->FontSizeDelta());
+    }
+
     void ApplicationStateTests::WrongTypeInEveryField()
     {
         std::string content{ "{" };
@@ -189,9 +199,8 @@ namespace SettingsModelUnitTests
     // These pass a type check, or sit deeper than one, and fail further in.
     void ApplicationStateTests::BadEntriesInsideAValue()
     {
-        static constexpr std::array<std::string_view, 3> contents{
+        static constexpr std::array<std::string_view, 2> contents{
             R"({"generatedProfiles":["{zzzzzzzz-c2c6-5271-96e7-009a87ff44bf}"]})",
-            R"({"dismissedMessages":["nope"]})",
             R"({"persistedWindowLayouts":[{"launchMode":"nope"}]})",
         };
 

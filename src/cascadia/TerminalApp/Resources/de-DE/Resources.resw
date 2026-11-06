@@ -763,12 +763,6 @@
   <data name="FindText" xml:space="preserve">
     <value>Suchen</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>Das Beendigungsverhalten kann in den erweiterten Profileinstellungen konfiguriert werden.</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>Nicht mehr anzeigen</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Dieses Terminalfenster wird als Administrator ausgeführt.</value>
   </data>

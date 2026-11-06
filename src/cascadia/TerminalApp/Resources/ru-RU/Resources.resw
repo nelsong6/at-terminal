@@ -760,12 +760,6 @@
   <data name="FindText" xml:space="preserve">
     <value>Найти</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>Поведение завершения можно настроить в дополнительных параметрах профиля.</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>Больше не показывать</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Это окно терминала запущено от имени администратора</value>
   </data>

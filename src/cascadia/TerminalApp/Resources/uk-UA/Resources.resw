@@ -809,12 +809,6 @@
   <data name="PlainText" xml:space="preserve">
     <value>Звичайний текст</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>Поведінку припинення можна налаштувати в розширених налаштуваннях профілю.</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>Більше не показувати</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Це вікно терміналу запущено від імені Адміністратора</value>
   </data>

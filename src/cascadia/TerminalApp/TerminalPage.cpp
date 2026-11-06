@@ -4841,97 +4841,16 @@ namespace winrt::TerminalApp::implementation
 
     // Method Description:
     // - Handles the change of connection state.
-    // If the connection state is failure show information bar suggesting to configure termination behavior
-    // (unless user asked not to show this message again)
-    // Arguments:
-    // - sender: the ICoreState instance containing the connection state
     // Return Value:
     // - <none>
-    safe_void_coroutine TerminalPage::_ConnectionStateChangedHandler(const IInspectable& sender, const IInspectable& /*args*/)
+    safe_void_coroutine TerminalPage::_ConnectionStateChangedHandler(const IInspectable& /*sender*/, const IInspectable& /*args*/)
     {
-        if (const auto coreState{ sender.try_as<winrt::Microsoft::Terminal::Control::ICoreState>() })
+        const auto weak = get_weak();
+        co_await wil::resume_foreground(Dispatcher());
+        if (const auto strong = weak.get())
         {
-            const auto newConnectionState = coreState.ConnectionState();
-            const auto weak = get_weak();
-            co_await wil::resume_foreground(Dispatcher());
-            const auto strong = weak.get();
-            if (!strong)
-            {
-                co_return;
-            }
-
             _adjustProcessPriorityThrottled->Run();
-
-            if (newConnectionState == ConnectionState::Failed && !_IsMessageDismissed(InfoBarMessage::CloseOnExitInfo))
-            {
-                if (const auto infoBar = FindName(L"CloseOnExitInfoBar").try_as<MUX::Controls::InfoBar>())
-                {
-                    infoBar.IsOpen(true);
-                }
-            }
         }
-    }
-
-    // Method Description:
-    // - Persists the user's choice not to show information bar guiding to configure termination behavior.
-    // Then hides this information buffer.
-    // Arguments:
-    // - <none>
-    // Return Value:
-    // - <none>
-    void TerminalPage::_CloseOnExitInfoDismissHandler(const IInspectable& /*sender*/, const IInspectable& /*args*/) const
-    {
-        _DismissMessage(InfoBarMessage::CloseOnExitInfo);
-        if (const auto infoBar = FindName(L"CloseOnExitInfoBar").try_as<MUX::Controls::InfoBar>())
-        {
-            infoBar.IsOpen(false);
-        }
-    }
-
-    // Method Description:
-    // - Checks whether information bar message was dismissed earlier (in the application state)
-    // Arguments:
-    // - message: message to look for in the state
-    // Return Value:
-    // - true, if the message was dismissed
-    bool TerminalPage::_IsMessageDismissed(const InfoBarMessage& message)
-    {
-        if (const auto dismissedMessages{ ApplicationState::SharedInstance().DismissedMessages() })
-        {
-            for (const auto& dismissedMessage : dismissedMessages)
-            {
-                if (dismissedMessage == message)
-                {
-                    return true;
-                }
-            }
-        }
-        return false;
-    }
-
-    // Method Description:
-    // - Persists the user's choice to dismiss information bar message (in application state)
-    // Arguments:
-    // - message: message to dismiss
-    // Return Value:
-    // - <none>
-    void TerminalPage::_DismissMessage(const InfoBarMessage& message)
-    {
-        const auto applicationState = ApplicationState::SharedInstance();
-        std::vector<InfoBarMessage> messages;
-
-        if (const auto values = applicationState.DismissedMessages())
-        {
-            messages.resize(values.Size());
-            values.GetMany(0, messages);
-        }
-
-        if (std::none_of(messages.begin(), messages.end(), [&](const auto& m) { return m == message; }))
-        {
-            messages.emplace_back(message);
-        }
-
-        applicationState.DismissedMessages(std::move(messages));
     }
 
     void TerminalPage::_updateThemeColors()

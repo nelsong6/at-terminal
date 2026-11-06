@@ -5,13 +5,6 @@ import "GlobalAppSettings.idl";
 
 namespace Microsoft.Terminal.Settings.Model
 {
-    enum InfoBarMessage
-    {
-        // We need a sentinel value to map deleted keys to, as we can't actually delete them (GH#16874)
-        IgnoredDeprecatedEntry = 0,
-        CloseOnExitInfo,
-    };
-
     runtimeclass WindowLayout
     {
         WindowLayout();
@@ -41,7 +34,6 @@ namespace Microsoft.Terminal.Settings.Model
         String SettingsHash;
         Windows.Foundation.Collections.IVector<WindowLayout> PersistedWindowLayouts;
         Windows.Foundation.Collections.IVector<String> RecentCommands;
-        Windows.Foundation.Collections.IVector<InfoBarMessage> DismissedMessages;
         Windows.Foundation.Collections.IVector<String> AllowedCommandlines;
         Single FontSizeDelta;
     }

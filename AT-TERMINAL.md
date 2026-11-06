@@ -30,6 +30,11 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   `state.json.bad` and rewritten without what was ignored, and the first window
   lists the problems in a dialog. Tests: `ApplicationStateTests`, run by CI.
 
+- **No "Termination behavior" bar.** Stock Windows Terminal shows an info bar with
+  "Don't show again" when a pane's program fails. The bar, its strings and the
+  `dismissedMessages` field in `state.json` are gone; a file still holding that
+  field loads without a problem. The exit message in the pane stays.
+
 - **It keeps a log.** `at-terminal.log` in `LocalState`, one of the home logs
   (`appLogs` in the home profile's `machine/state.json`): start and exit, the tmux
   server it connected to, that connection failing or ending and how, and crashes.

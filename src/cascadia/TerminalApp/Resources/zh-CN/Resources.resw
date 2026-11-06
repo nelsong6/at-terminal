@@ -760,12 +760,6 @@
   <data name="FindText" xml:space="preserve">
     <value>查找</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>可以在高级配置文件设置中配置终止行为。</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>不再显示</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>此终端窗口正在以管理员身份运行</value>
   </data>

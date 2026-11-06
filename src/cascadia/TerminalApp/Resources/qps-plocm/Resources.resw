@@ -760,12 +760,6 @@
   <data name="FindText" xml:space="preserve">
     <value>₣ìпđ !</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>Ťéямїлâŧîόň ь℮ћäνįőř čªή вĕ ċοñƒĩġџřèδ įŋ ăδνåл¢êð ряòƒιļє şėŧтіиĝś. !!! !!! !!! !!! !!! !!! !!</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>Ďόń'ţ šħόω ãĝάϊл !!! !</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>Ţђіś Тĕřмїηǻℓ шĩⁿðöŵ ïѕ ѓüñňĩñģ ãŝ áðmĭⁿîşŧŕãţθŕ !!! !!! !!! !!! !!</value>
   </data>

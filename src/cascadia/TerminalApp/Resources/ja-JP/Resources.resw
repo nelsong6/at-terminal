@@ -761,12 +761,6 @@
   <data name="FindText" xml:space="preserve">
     <value>検索する</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>終了動作は、プロファイルの詳細設定で構成できます。</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>今後表示しない</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>このターミナル ウィンドウは管理者として実行されています</value>
   </data>

@@ -566,18 +566,6 @@ JSON_FLAG_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::IntenseStyle)
     };
 };
 
-JSON_ENUM_MAPPER(::winrt::Microsoft::Terminal::Settings::Model::InfoBarMessage)
-{
-    JSON_MAPPINGS(4) = {
-        pair_type{ "deprecated", ValueType::IgnoredDeprecatedEntry },
-        pair_type{ "closeOnExitInfo", ValueType::CloseOnExitInfo },
-
-        // Keep deprecated keys last, so when they get serialized again they aren't written out
-        pair_type{ "keyboardServiceWarning", ValueType::IgnoredDeprecatedEntry },
-        pair_type{ "setAsDefault", ValueType::IgnoredDeprecatedEntry },
-    };
-};
-
 template<>
 struct ::Microsoft::Terminal::Settings::Model::JsonUtils::ConversionTrait<winrt::Microsoft::Terminal::Settings::Model::ThemeColor>
 {

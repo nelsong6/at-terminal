@@ -17,7 +17,6 @@
           Background="Transparent">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto" />
-            <RowDefinition Height="Auto" />
             <RowDefinition Height="*" />
         </Grid.RowDefinitions>
 
@@ -25,25 +24,8 @@
                              Grid.Row="0"
                              KeyUp="_KeyDownHandler" />
 
-        <StackPanel Grid.Row="1"
-                    Background="{ThemeResource ApplicationPageBackgroundThemeBrush}">
-            <mux:InfoBar x:Name="CloseOnExitInfoBar"
-                         x:Uid="CloseOnExitInfoBar"
-                         x:Load="False"
-                         CornerRadius="0"
-                         IsClosable="True"
-                         IsIconVisible="True"
-                         IsOpen="False"
-                         Severity="Informational">
-                <mux:InfoBar.ActionButton>
-                    <Button x:Uid="InfoBarDismissButton"
-                            Click="_CloseOnExitInfoDismissHandler" />
-                </mux:InfoBar.ActionButton>
-            </mux:InfoBar>
-        </StackPanel>
-
         <Grid x:Name="TabContent"
-              Grid.Row="2"
+              Grid.Row="1"
               HorizontalAlignment="Stretch"
               VerticalAlignment="Stretch">
             <Grid.Background>
@@ -69,30 +51,30 @@
         -->
 
         <local:AboutDialog x:Name="AboutDialog"
-                           Grid.Row="2"
+                           Grid.Row="1"
                            x:Load="False" />
 
         <ContentDialog x:Name="QuitDialog"
                        x:Uid="QuitDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Primary" />
 
         <ContentDialog x:Name="CloseAllDialog"
                        x:Uid="CloseAllDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Primary" />
 
         <ContentDialog x:Name="CloseReadOnlyDialog"
                        x:Uid="CloseReadOnlyDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Close" />
 
         <ContentDialog x:Name="MultiLinePasteDialog"
                        x:Uid="MultiLinePasteDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Primary">
             <StackPanel>
@@ -112,13 +94,13 @@
 
         <ContentDialog x:Name="LargePasteDialog"
                        x:Uid="LargePasteDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Primary" />
 
         <ContentDialog x:Name="ControlNoticeDialog"
                        x:Uid="ControlNoticeDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Primary">
             <TextBlock IsTextSelectionEnabled="True"
@@ -132,7 +114,7 @@
 
         <ContentDialog x:Name="UriErrorDialog"
                        x:Uid="UriErrorDialog"
-                       Grid.Row="2"
+                       Grid.Row="1"
                        x:Load="False"
                        DefaultButton="Close">
             <TextBlock IsTextSelectionEnabled="True"
@@ -147,14 +129,14 @@
         </ContentDialog>
 
         <local:CommandPalette x:Name="CommandPaletteElement"
-                              Grid.Row="2"
+                              Grid.Row="1"
                               VerticalAlignment="Stretch"
                               x:Load="False"
                               PreviewKeyDown="_KeyDownHandler"
                               Visibility="Collapsed" />
 
         <local:SuggestionsControl x:Name="SuggestionsElement"
-                                  Grid.Row="2"
+                                  Grid.Row="1"
                                   HorizontalAlignment="Left"
                                   VerticalAlignment="Top"
                                   x:Load="False"

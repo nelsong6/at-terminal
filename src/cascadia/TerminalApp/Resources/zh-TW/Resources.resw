@@ -760,12 +760,6 @@
   <data name="FindText" xml:space="preserve">
     <value>尋找</value>
   </data>
-  <data name="CloseOnExitInfoBar.Message" xml:space="preserve">
-    <value>您可以在進階設定檔設定中設定終止行為。</value>
-  </data>
-  <data name="InfoBarDismissButton.Content" xml:space="preserve">
-    <value>不要再顯示</value>
-  </data>
   <data name="ElevationShield.[using:Windows.UI.Xaml.Controls]ToolTipService.ToolTip" xml:space="preserve">
     <value>此終端機視窗目前以系統管理員身分執行</value>
   </data>
