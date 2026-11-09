@@ -17,7 +17,9 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   the foreground, as it does a program started by a background process, the
   window takes it the way the summon key does.
 - **Always full screen.** `GetLaunchMode` is always full screen, and nothing
-  leaves it (F11 and Alt+Enter do nothing).
+  leaves it (F11 and Alt+Enter do nothing). It covers the whole screen even
+  with an auto-hide taskbar: stock Windows Terminal leaves 2px unpainted at
+  that edge for revealing the taskbar, which full screen doesn't do (ATT-5).
 - **Its own package.** The Dev branding, renamed: identity `at-terminal`,
   publisher `CN=at-terminal`, alias `at-terminal.exe`, its own settings under
   `%LOCALAPPDATA%\Packages\at-terminal_<hash>\LocalState`. `wt.exe` stays

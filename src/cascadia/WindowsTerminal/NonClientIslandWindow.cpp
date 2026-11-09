@@ -660,8 +660,10 @@ int NonClientIslandWindow::_GetResizeHandleHeight() const noexcept
     // still mouse-over the taskbar to reveal it.
     // GH#5209 - make sure to use MONITOR_DEFAULTTONEAREST, so that this will
     // still find the right monitor even when we're restoring from minimized.
+    // Full screen leaves no gap: the taskbar doesn't reveal over a full screen
+    // window, so the gap was only an unpainted strip at the screen's edge.
     auto hMon = MonitorFromWindow(_window.get(), MONITOR_DEFAULTTONEAREST);
-    if (hMon && (_isMaximized || _fullscreen))
+    if (hMon && _isMaximized && !_fullscreen)
     {
         MONITORINFO monInfo{ 0 };
         monInfo.cbSize = sizeof(MONITORINFO);
@@ -691,19 +693,8 @@ int NonClientIslandWindow::_GetResizeHandleHeight() const noexcept
 
             // If there's a taskbar on any side of the monitor, reduce our size
             // a little bit on that edge.
-            //
-            // Note to future code archaeologists:
-            // This doesn't seem to work for fullscreen on the primary display.
-            // However, testing a bunch of other apps with fullscreen modes
-            // and an auto-hiding taskbar has shown that _none_ of them
-            // reveal the taskbar from fullscreen mode. This includes Edge,
-            // Firefox, Chrome, Sublime Text, PowerPoint - none seemed to
-            // support this.
-            //
-            // This does however work fine for maximized.
             if (onTop)
             {
-                // Peculiarly, when we're fullscreen,
                 newSize.top += AutohideTaskbarSize;
             }
             if (onBottom)
