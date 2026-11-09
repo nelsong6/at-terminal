@@ -1177,26 +1177,6 @@
     <value>텍스트를 자동으로 밝고 어둡게 조정하여 더 잘 보이도록 합니다. 사용하도록 설정하더라도 전경색과 배경색이 잘 어우러지지 않아 대비가 좋지 않을 때만 조정됩니다.</value>
     <comment>A description for what the "adjust indistinguishable colors" setting does. Presented near "Profile_AdjustIndistinguishableColors".</comment>
   </data>
-  <data name="Profile_ScrollbarVisibility.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>스크롤 막대 표시 여부</value>
-    <comment>Name for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibility.Header" xml:space="preserve">
-    <value>스크롤 막대 표시 여부</value>
-    <comment>Header for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityHidden.Content" xml:space="preserve">
-    <value>숨김</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is hidden.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityVisible.Content" xml:space="preserve">
-    <value>표시</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is visible but may dynamically shrink.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityAlways.Content" xml:space="preserve">
-    <value>항상</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is always visible.</comment>
-  </data>
   <data name="Profile_SnapOnInput.Header" xml:space="preserve">
     <value>입력 시 입력으로 스크롤</value>
     <comment>Header for a control to toggle if keyboard input should automatically scroll to where the input was placed.</comment>
@@ -1348,14 +1328,6 @@
   <data name="Profile_RightClickContextMenu.HelpText" xml:space="preserve">
     <value>사용하도록 설정하면 터미널에서 마우스 오른쪽 단추를 클릭할 때 메뉴가 표시됩니다. 사용하지 않도록 설정하면 마우스 오른쪽 단추를 클릭하면 선택한 텍스트가 복사됩니다(또는 선택 항목이 없는 경우 붙여넣기).</value>
     <comment>A description for what the "Display a menu on right-click" setting does. Presented near "Profile_RightClickContextMenu".</comment>
-  </data>
-  <data name="Profile_ShowMarks.Header" xml:space="preserve">
-    <value>스크롤 막대에 마크 표시</value>
-    <comment>"Marks" are small visual indicators that can help the user identify the position of useful info in the scrollbar</comment>
-  </data>
-  <data name="Profile_ShowMarks.HelpText" xml:space="preserve">
-    <value>사용하도록 설정하면 터미널은 텍스트를 검색하거나 셸 통합을 사용할 때 스크롤 막대에 표시를 표시합니다.</value>
-    <comment>A description for what the "Display marks on the scrollbar" setting does. Presented near "Profile_ShowMarks".</comment>
   </data>
   <data name="Profile_AutoMarkPrompts.Header" xml:space="preserve">
     <value>&lt;Enter&gt; 키를 누를 때 자동으로 프롬프트 표시</value>

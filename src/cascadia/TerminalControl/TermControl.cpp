@@ -565,114 +565,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         scrollBar.Maximum(update.newMaximum);
         scrollBar.Minimum(update.newMinimum);
         scrollBar.ViewportSize(update.newViewportSize);
-        // scroll one full screen worth at a time when the scroll bar is clicked
-        scrollBar.LargeChange(std::max(update.newViewportSize - 1, 0.));
 
         _isInternalScrollBarUpdate = false;
-
-        if (_showMarksInScrollbar)
-        {
-            const auto scaleFactor = DisplayInformation::GetForCurrentView().RawPixelsPerViewPixel();
-            const auto scrollBarWidthInDIP = scrollBar.ActualWidth();
-            const auto scrollBarHeightInDIP = scrollBar.ActualHeight();
-            const auto scrollBarWidthInPx = gsl::narrow_cast<int32_t>(lrint(scrollBarWidthInDIP * scaleFactor));
-            const auto scrollBarHeightInPx = gsl::narrow_cast<int32_t>(lrint(scrollBarHeightInDIP * scaleFactor));
-
-            const auto canvas = FindName(L"ScrollBarCanvas").as<Controls::Image>();
-            auto source = canvas.Source().try_as<Media::Imaging::WriteableBitmap>();
-
-            if (!source || scrollBarWidthInPx != source.PixelWidth() || scrollBarHeightInPx != source.PixelHeight())
-            {
-                source = Media::Imaging::WriteableBitmap{ scrollBarWidthInPx, scrollBarHeightInPx };
-                canvas.Source(source);
-                canvas.Width(scrollBarWidthInDIP);
-                canvas.Height(scrollBarHeightInDIP);
-            }
-
-            const auto buffer = source.PixelBuffer();
-            const auto data = buffer.data();
-            const auto stride = scrollBarWidthInPx * sizeof(til::color);
-
-            // The bitmap has the size of the entire scrollbar, but we want the marks to only show in the range the "thumb"
-            // (the scroll indicator) can move. That's why we need to add an offset to the start of the drawable bitmap area
-            // (to offset the decrease button) and subtract twice that (to offset the increase button as well).
-            //
-            // The WinUI standard scrollbar defines a Margin="2,0,2,0" for the "VerticalPanningThumb" and a Padding="0,4,0,0"
-            // for the "VerticalDecrementTemplate" (and similar for the increment), but it seems neither of those is correct,
-            // because a padding for 3 DIPs seem to be the exact right amount to add.
-            const auto increaseDecreaseButtonHeight = scrollBarWidthInPx + lround(3 * scaleFactor);
-            const auto drawableDataStart = data + stride * increaseDecreaseButtonHeight;
-            const auto drawableRange = scrollBarHeightInPx - 2 * increaseDecreaseButtonHeight;
-
-            // Protect the remaining code against negative offsets. This normally can't happen
-            // and this code just exists so it doesn't crash if I'm ever wrong about this.
-            // (The window has a min. size that ensures that there's always a scrollbar thumb.)
-            if (drawableRange < 0)
-            {
-                return;
-            }
-
-            // The scrollbar bitmap is divided into 3 evenly sized stripes:
-            // Left: Regular marks
-            // Center: nothing
-            // Right: Search marks
-            const auto pipWidth = (scrollBarWidthInPx + 1) / 3;
-            const auto pipHeight = lround(1 * scaleFactor);
-
-            const auto maxOffsetY = drawableRange - pipHeight;
-            const auto offsetScale = maxOffsetY / gsl::narrow_cast<float>(update.newMaximum + update.newViewportSize);
-            // A helper to turn a TextBuffer row offset into a bitmap offset.
-            const auto dataAt = [&](til::CoordType row) [[msvc::forceinline]] {
-                const auto y = std::clamp<long>(lrintf(row * offsetScale), 0, maxOffsetY);
-                return drawableDataStart + stride * y;
-            };
-            // A helper to draw a single pip (mark) at the given location.
-            const auto drawPip = [&](uint8_t* beg, til::color color) [[msvc::forceinline]] {
-                const auto end = beg + pipHeight * stride;
-                for (; beg < end; beg += stride)
-                {
-                    // a til::color does NOT have the same RGBA format as the bitmap.
-#pragma warning(suppress : 26490) // Don't use reinterpret_cast (type.1).
-                    const DWORD c = 0xff << 24 | color.r << 16 | color.g << 8 | color.b;
-                    std::fill_n(reinterpret_cast<DWORD*>(beg), pipWidth, c);
-                }
-            };
-
-            memset(data, 0, buffer.Length());
-
-            if (const auto marks = _core.ScrollMarks())
-            {
-                for (const auto& m : marks)
-                {
-                    const auto row = m.Row;
-                    const til::color color{ m.Color.Color };
-                    const auto base = dataAt(row);
-                    drawPip(base, color);
-                }
-            }
-
-            if (_searchBox && _searchBox->IsOpen())
-            {
-                const auto core = winrt::get_self<ControlCore>(_core);
-                const auto& searchMatches = core->SearchResultRows();
-                const auto color = core->ForegroundColor();
-                const auto rightAlignedOffset = (scrollBarWidthInPx - pipWidth) * sizeof(til::color);
-                til::CoordType lastRow = til::CoordTypeMin;
-
-                for (const auto& span : searchMatches)
-                {
-                    if (lastRow != span.start.y)
-                    {
-                        lastRow = span.start.y;
-                        const auto base = dataAt(lastRow) + rightAlignedOffset;
-                        drawPip(base, color);
-                    }
-                }
-            }
-
-            source.Invalidate();
-            canvas.Visibility(Visibility::Visible);
-        }
     }
 
     // Method Description:
@@ -821,19 +715,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _searchBox->Close();
         _core.ClearSearch();
 
-        // Clear search highlights scroll marks (by triggering an update after closing the search box)
-        if (_showMarksInScrollbar)
-        {
-            const auto scrollBar = ScrollBar();
-            ScrollBarUpdate update{
-                .newValue = scrollBar.Value(),
-                .newMaximum = scrollBar.Maximum(),
-                .newMinimum = scrollBar.Minimum(),
-                .newViewportSize = scrollBar.ViewportSize(),
-            };
-            _updateScrollBar->Run(update);
-        }
-
         // Set focus back to terminal control
         this->Focus(FocusState::Programmatic);
     }
@@ -965,22 +846,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         const auto newMargin = StringToXamlThickness(settings.Padding());
         SwapChainPanel().Margin(newMargin);
 
-        // Apply settings for scrollbar
-        if (settings.ScrollState() == ScrollbarState::Hidden)
-        {
-            // In the scenario where the user has turned off the OS setting to automatically hide scrollbars, the
-            // Terminal scrollbar would still be visible; so, we need to set the control's visibility accordingly to
-            // achieve the intended effect.
-            ScrollBar().IndicatorMode(Controls::Primitives::ScrollingIndicatorMode::None);
-            ScrollBar().Visibility(Visibility::Collapsed);
-        }
-        else // (default or Visible)
-        {
-            // Default behavior
-            ScrollBar().IndicatorMode(Controls::Primitives::ScrollingIndicatorMode::MouseIndicator);
-            ScrollBar().Visibility(Visibility::Visible);
-        }
-
         _interactivity.UpdateSettings();
         {
             const auto inputScope = settings.DefaultInputScope();
@@ -996,16 +861,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
                 static_cast<float>(newMargin.Bottom),
             });
         }
-
-        _showMarksInScrollbar = settings.ShowMarks();
-        // Hide all scrollbar marks since they might be disabled now.
-        if (const auto canvas = ScrollBarCanvas())
-        {
-            canvas.Visibility(Visibility::Collapsed);
-        }
-        // When we hot reload the settings, the core will send us a scrollbar
-        // update. If we enabled scrollbar marks, then great, when we handle
-        // that message, we'll redraw them.
 
         // update the position of the quick fix menu (in case we changed the padding)
         RefreshQuickFixMenu();
@@ -1428,7 +1283,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         ScrollBar().Minimum(0);
         ScrollBar().Value(0);
         ScrollBar().ViewportSize(bufferHeight);
-        ScrollBar().LargeChange(bufferHeight); // scroll one "screenful" at a time when the scroll bar is clicked
 
         // Now that the renderer is set up, update the appearance for initialization
         _UpdateAppearanceFromUIThread(_core.FocusedAppearance());
@@ -2742,12 +2596,12 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // - Determines how much space (in pixels) an app would need to reserve to
     //   create a control with the settings stored in the settings param. This
     //   accounts for things like the font size and face, the initialRows and
-    //   initialCols, and scrollbar visibility. The returned sized is based upon
+    //   initialCols. The returned sized is based upon
     //   the provided DPI value
     // Arguments:
     // - settings: A IControlSettings with the settings to get the pixel size of.
     // - dpi: The DPI we should create the terminal at. This affects things such
-    //   as font size, scrollbar and other control scaling, etc. Make sure the
+    //   as font size and other control scaling, etc. Make sure the
     //   caller knows what monitor the control is about to appear on.
     // - commandlineCols: Number of cols specified on the commandline
     // - commandlineRows: Number of rows specified on the commandline
@@ -2781,17 +2635,16 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // - Determines how much space (in pixels) an app would need to reserve to
     //   create a control with the settings stored in the settings param. This
     //   accounts for things like the font size and face, the initialRows and
-    //   initialCols, and scrollbar visibility. The returned sized is based upon
+    //   initialCols. The returned sized is based upon
     //   the provided DPI value
     // Arguments:
     // - initialSizeInChars: The size to get the proposed dimensions for.
     // - fontHeight: The font height to use to calculate the proposed size for.
     // - fontWeight: The font weight to use to calculate the proposed size for.
     // - fontFace: The font name to use to calculate the proposed size for.
-    // - scrollState: The ScrollbarState to use to calculate the proposed size for.
     // - padding: The padding to use to calculate the proposed size for.
     // - dpi: The DPI we should create the terminal at. This affects things such
-    //   as font size, scrollbar and other control scaling, etc. Make sure the
+    //   as font size and other control scaling, etc. Make sure the
     //   caller knows what monitor the control is about to appear on.
     // Return Value:
     // - a size containing the requested dimensions in pixels.
@@ -2804,7 +2657,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         const auto fontFace = settings.FontFace();
         const auto cellWidth = CSSLengthPercentage::FromString(settings.CellWidth().c_str());
         const auto cellHeight = CSSLengthPercentage::FromString(settings.CellHeight().c_str());
-        const auto scrollState = settings.ScrollState();
         const auto padding = settings.Padding();
 
         // Initialize our font information.
@@ -2832,18 +2684,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         const auto scale = dpi / static_cast<float>(USER_DEFAULT_SCREEN_DPI);
         const auto actualFontSize = actualFont.GetSize();
 
-        // UWP XAML scrollbars aren't guaranteed to be the same size as the
-        // ComCtl scrollbars, but it's certainly close enough.
-        const auto scrollbarSize = GetSystemMetricsForDpi(SM_CXVSCROLL, dpi);
-
         float width = cols * static_cast<float>(actualFontSize.width);
-
-        // Reserve additional space if scrollbar is intended to be visible
-        if (scrollState != ScrollbarState::Hidden)
-        {
-            width += scrollbarSize;
-        }
-
         float height = rows * static_cast<float>(actualFontSize.height);
         const auto thickness = StringToXamlThickness(padding);
         // GH#2061 - make sure to account for the size the padding _will be_ scaled to
@@ -2865,21 +2706,10 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         const auto cols = std::max(::base::saturated_cast<int32_t>(sizeInChars.Width), MINIMUM_VISIBLE_CELLS);
         const auto rows = std::max(::base::saturated_cast<int32_t>(sizeInChars.Height), MINIMUM_VISIBLE_CELLS);
         const auto fontSize = _core.FontSize();
-        const auto scrollState = _core.Settings().ScrollState();
         const auto padding = _core.Settings().Padding();
         const auto scale = static_cast<float>(DisplayInformation::GetForCurrentView().RawPixelsPerViewPixel());
         float width = cols * static_cast<float>(fontSize.Width);
         float height = rows * static_cast<float>(fontSize.Height);
-
-        // Reserve additional space if scrollbar is intended to be visible
-        if (scrollState != ScrollbarState::Hidden)
-        {
-            // UWP XAML scrollbars aren't guaranteed to be the same size as the
-            // ComCtl scrollbars, but it's certainly close enough.
-            const auto dpi = ::base::saturated_cast<uint32_t>(USER_DEFAULT_SCREEN_DPI * scale);
-            const auto scrollbarSize = GetSystemMetricsForDpi(SM_CXVSCROLL, dpi);
-            width += scrollbarSize;
-        }
 
         const auto thickness = StringToXamlThickness(padding);
         // GH#2061 - make sure to account for the size the padding _will be_ scaled to
@@ -2905,7 +2735,7 @@ namespace winrt::Microsoft::Terminal::Control::implementation
     // Method Description:
     // - Get the absolute minimum size that this control can be resized to and
     //   still have 2x2 characters visible. This includes the space needed for
-    //   the scrollbar and the padding.
+    //   the padding.
     //   2x2 is the VT theoretical minimum (DECSTBM / DECSLRM). A 1-cell
     //   viewport can hang TextBuffer::Reflow on a wide glyph (GH#19996).
     // Arguments:
@@ -2920,11 +2750,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
             const auto fontSize = _core.FontSizeInDips();
             auto width = fontSize.Width * MINIMUM_VISIBLE_CELLS;
             auto height = fontSize.Height * MINIMUM_VISIBLE_CELLS;
-            // Reserve additional space if scrollbar is intended to be visible
-            if (_core.Settings().ScrollState() != ScrollbarState::Hidden)
-            {
-                width += static_cast<float>(ScrollBar().ActualWidth());
-            }
 
             // Account for the size of any padding
             const auto padding = GetPadding();
@@ -2958,11 +2783,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         auto nonTerminalArea = gsl::narrow_cast<float>(widthOrHeight ?
                                                            padding.Left + padding.Right :
                                                            padding.Top + padding.Bottom);
-
-        if (widthOrHeight && _core.Settings().ScrollState() != ScrollbarState::Hidden)
-        {
-            nonTerminalArea += gsl::narrow_cast<float>(ScrollBar().ActualWidth());
-        }
 
         const auto gridSize = dimension - nonTerminalArea;
         const auto cells = floor(gridSize / fontDimension);
@@ -3843,21 +3663,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         else
         {
             _searchBox->SetStatus(results.TotalMatches, results.CurrentMatch, results.SearchRegexInvalid);
-        }
-
-        if (results.SearchInvalidated)
-        {
-            if (_showMarksInScrollbar)
-            {
-                const auto scrollBar = ScrollBar();
-                ScrollBarUpdate update{
-                    .newValue = scrollBar.Value(),
-                    .newMaximum = scrollBar.Maximum(),
-                    .newMinimum = scrollBar.Minimum(),
-                    .newViewportSize = scrollBar.ViewportSize(),
-                };
-                _updateScrollBar->Run(update);
-            }
         }
 
         if (auto automationPeer{ FrameworkElementAutomationPeer::FromElement(*this) })

@@ -1177,26 +1177,6 @@
     <value>∆ųţοmäţιċãℓľў ьŗϊġĥťëñś ǿŗ δåřķēиѕ ťěжŧ ťò mäќε ĭŧ mόґз νίşìъŀĕ. Зνёŋ ẃћéŋ ęηāьℓёδ, τћιѕ äđјυšŧměйŧ ẃìℓŀ õñℓў ôćčцг ŵђěи ǻ çøмъĩⁿãτĩθñ øƒ ƒбřεġґòϋňδ áηď вāсκģřŏŭпδ čółοřş ẁóΰłđ я℮şŭľτ ìñ ρőόŗ сõŉтгáѕт. !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!!</value>
     <comment>A description for what the "adjust indistinguishable colors" setting does. Presented near "Profile_AdjustIndistinguishableColors".</comment>
   </data>
-  <data name="Profile_ScrollbarVisibility.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Šсґσļľвąя νĩѕìъįłіťу !!! !!!</value>
-    <comment>Name for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibility.Header" xml:space="preserve">
-    <value>Ščяòľŀвåŕ νίšιъįŀιτÿ !!! !!!</value>
-    <comment>Header for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityHidden.Content" xml:space="preserve">
-    <value>Ĥΐδđēⁿ !</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is hidden.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityVisible.Content" xml:space="preserve">
-    <value>Vїşівłε !!</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is visible but may dynamically shrink.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityAlways.Content" xml:space="preserve">
-    <value>Âℓώãýѕ !</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is always visible.</comment>
-  </data>
   <data name="Profile_SnapOnInput.Header" xml:space="preserve">
     <value>Śсгόľĺ ťσ їŋрυт ẃħęπ ţỳφįⁿģ !!! !!! !!</value>
     <comment>Header for a control to toggle if keyboard input should automatically scroll to where the input was placed.</comment>
@@ -1348,14 +1328,6 @@
   <data name="Profile_RightClickContextMenu.HelpText" xml:space="preserve">
     <value>Ẁђéŋ êπäвĺεð, ţĥё Τéŕмįⁿął ẃìļŀ ďïśρĺąỳ ã мέиц öη ŕìğĥţ-сℓĩ¢ķ. Ŵћëŉ đϊśªьŀèð, řιġћţ-čℓî¢ķιñĝ ẁĩłℓ ĉσрÿ тħē şèłэĉţĕđ ŧэжτ (ŏя рâŝтé ΐƒ ťћзяę'ś йб śзľĕćţîбñ). !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !</value>
     <comment>A description for what the "Display a menu on right-click" setting does. Presented near "Profile_RightClickContextMenu".</comment>
-  </data>
-  <data name="Profile_ShowMarks.Header" xml:space="preserve">
-    <value>Ďιşрĺąŷ мǻŕĸş θй ţĥě ŝćřбŀŀъáŕ !!! !!! !!!</value>
-    <comment>"Marks" are small visual indicators that can help the user identify the position of useful info in the scrollbar</comment>
-  </data>
-  <data name="Profile_ShowMarks.HelpText" xml:space="preserve">
-    <value>Ẅĥέň ёпдъļêď, τĥ℮ Τëгmįиªł ẃĩľļ ðΐśρℓăỳ мāѓκś ιñ ţħє şĉѓòℓľьªŗ ŵħëⁿ ŝēãѓçђιŋĝ ƒθř ťèжт, σѓ ŵћзп šђêļŀ ίπтέğґãťîόи іś εŋäьłёđ. !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !!! !</value>
-    <comment>A description for what the "Display marks on the scrollbar" setting does. Presented near "Profile_ShowMarks".</comment>
   </data>
   <data name="Profile_AutoMarkPrompts.Header" xml:space="preserve">
     <value>∆űŧòмåťĩċǻłļγ маѓķ ρřǿmρŧş óй φґěѕşіиğ Еŋŧєř !!! !!! !!! !!! !</value>

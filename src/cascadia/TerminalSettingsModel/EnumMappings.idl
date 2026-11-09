@@ -25,7 +25,6 @@ namespace Microsoft.Terminal.Settings.Model
 
         // Profile Settings
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Settings.Model.CloseOnExitMode> CloseOnExitMode { get; };
-        static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Control.ScrollbarState> ScrollbarState { get; };
         static Windows.Foundation.Collections.IMap<String, Windows.UI.Xaml.Media.Stretch> BackgroundImageStretchMode { get; };
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Control.TextAntialiasingMode> TextAntialiasingMode { get; };
         static Windows.Foundation.Collections.IMap<String, Microsoft.Terminal.Core.CursorStyle> CursorStyle { get; };

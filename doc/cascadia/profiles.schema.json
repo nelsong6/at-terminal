@@ -2946,16 +2946,6 @@
           "description": "When set to true, enable retro terminal effects. This is an experimental feature, and its continued existence is not guaranteed.",
           "type": "boolean"
         },
-        "experimental.showMarksOnScrollbar": {
-          "type": "boolean",
-          "description": "[Deprecated] Replaced with the \"showMarksOnScrollbar\" setting.",
-          "deprecated": true
-        },
-        "showMarksOnScrollbar": {
-          "default": false,
-          "description": "When set to true, marks added to the buffer via the addMark action will appear on the scrollbar.",
-          "type": "boolean"
-        },
         "experimental.rainbowSuggestions": {
           "type": "boolean",
           "description": "Enables displaying command suggestions in the terminal in RGB (all the colors of the rainbow!).",
@@ -3085,16 +3075,6 @@
           "enum": [
             "never",
             "indexed",
-            "always"
-          ],
-          "type": "string"
-        },
-        "scrollbarState": {
-          "default": "visible",
-          "description": "Defines the visibility of the scrollbar.",
-          "enum": [
-            "visible",
-            "hidden",
             "always"
           ],
           "type": "string"

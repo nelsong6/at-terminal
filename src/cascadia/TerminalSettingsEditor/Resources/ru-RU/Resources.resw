@@ -1177,26 +1177,6 @@
     <value>Автоматически повышает яркость или затемняет текст, чтобы сделать его более заметным. Даже если этот параметр включен, он будет действовать только в при слабой контрастности сочетания цветов переднего плана и фона.</value>
     <comment>A description for what the "adjust indistinguishable colors" setting does. Presented near "Profile_AdjustIndistinguishableColors".</comment>
   </data>
-  <data name="Profile_ScrollbarVisibility.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Видимость полосы прокрутки</value>
-    <comment>Name for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibility.Header" xml:space="preserve">
-    <value>Видимость полосы прокрутки</value>
-    <comment>Header for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityHidden.Content" xml:space="preserve">
-    <value>Скрыто</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is hidden.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityVisible.Content" xml:space="preserve">
-    <value>Видимы</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is visible but may dynamically shrink.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityAlways.Content" xml:space="preserve">
-    <value>Всегда</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is always visible.</comment>
-  </data>
   <data name="Profile_SnapOnInput.Header" xml:space="preserve">
     <value>Прокрутка для ввода при печати</value>
     <comment>Header for a control to toggle if keyboard input should automatically scroll to where the input was placed.</comment>
@@ -1348,14 +1328,6 @@
   <data name="Profile_RightClickContextMenu.HelpText" xml:space="preserve">
     <value>Если этот параметр включен, терминал отображает меню правой кнопкой мыши. Если этот параметр отключен, при нажатии правой кнопкой мыши будет скопироваться выделенный текст (или вставить, если нет выделенного фрагмента).</value>
     <comment>A description for what the "Display a menu on right-click" setting does. Presented near "Profile_RightClickContextMenu".</comment>
-  </data>
-  <data name="Profile_ShowMarks.Header" xml:space="preserve">
-    <value>Отображать метки на полосе прокрутки</value>
-    <comment>"Marks" are small visual indicators that can help the user identify the position of useful info in the scrollbar</comment>
-  </data>
-  <data name="Profile_ShowMarks.HelpText" xml:space="preserve">
-    <value>Если этот параметр включен, Терминал будет отображать метки на полосе прокрутки при поиске текста или при включенной интеграции оболочки.</value>
-    <comment>A description for what the "Display marks on the scrollbar" setting does. Presented near "Profile_ShowMarks".</comment>
   </data>
   <data name="Profile_AutoMarkPrompts.Header" xml:space="preserve">
     <value>Автоматически помечать запросы при нажатии клавиши ВВОД</value>

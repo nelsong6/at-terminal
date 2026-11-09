@@ -61,8 +61,6 @@ namespace Microsoft.Terminal.Settings.Editor
         IInspectable CurrentCloseOnExitMode;
         Windows.Foundation.Collections.IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> CloseOnExitModeList { get; };
 
-        IInspectable CurrentScrollState;
-        Windows.Foundation.Collections.IObservableVector<Microsoft.Terminal.Settings.Editor.EnumEntry> ScrollStateList { get; };
 
         Double LeftPadding { get; set; };
         Double TopPadding { get; set; };
@@ -86,7 +84,6 @@ namespace Microsoft.Terminal.Settings.Editor
         Boolean ShowUnfocusedAppearance { get; };
         AppearanceViewModel UnfocusedAppearance { get; };
 
-        Boolean ShowMarksAvailable { get; };
         Boolean AutoMarkPromptsAvailable { get; };
         Boolean RepositionCursorWithMouseAvailable { get; };
 
@@ -117,7 +114,6 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, SuppressApplicationTitle);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, UseAcrylic);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Single, Opacity);
-        OBSERVABLE_PROJECTED_PROFILE_SETTING(Microsoft.Terminal.Control.ScrollbarState, ScrollState);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(String, Padding);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(String, Commandline);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(String, StartingDirectory);
@@ -130,7 +126,6 @@ namespace Microsoft.Terminal.Settings.Editor
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, Elevate);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, ReloadEnvironmentVariables);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, RightClickContextMenu);
-        OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, ShowMarks);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, AutoMarkPrompts);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, RepositionCursorWithMouse);
         OBSERVABLE_PROJECTED_PROFILE_SETTING(Boolean, ForceVTInput);

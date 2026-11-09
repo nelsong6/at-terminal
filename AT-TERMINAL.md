@@ -35,6 +35,14 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   `dismissedMessages` field in `state.json` are gone; a file still holding that
   field loads without a problem. The exit message in the pane stays.
 
+- **No scrollbar.** tmux keeps the history, so the terminal's own scrollbar only
+  ever showed a full track, and it took a column from the text. It is gone, with
+  its settings (`scrollbarState`, `showMarksOnScrollbar`) and their settings-page
+  entries; a settings file still holding them loads and leaves them out when
+  written. The `ScrollBar` stays in `TermControl.xaml`, collapsed, as the scroll
+  position the control's scrolling code reads and sets. Test:
+  `RemovedScrollbarSettingsAreDropped`, run by CI.
+
 - **It keeps a log.** `at-terminal.log` in `LocalState`, one of the home logs
   (`appLogs` in the home profile's `machine/state.json`): start and exit, the tmux
   server it connected to, that connection failing or ending and how, and crashes.

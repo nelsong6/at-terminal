@@ -36,9 +36,6 @@
     <ClInclude Include="ControlInteractivity.h">
       <DependentUpon>ControlInteractivity.idl</DependentUpon>
     </ClInclude>
-    <ClInclude Include="ScrollBarVisualStateManager.h">
-      <DependentUpon>ScrollBarVisualStateManager.idl</DependentUpon>
-    </ClInclude>
     <ClInclude Include="KeyChord.h">
       <DependentUpon>KeyChord.idl</DependentUpon>
     </ClInclude>
@@ -75,9 +72,6 @@
     <ClCompile Include="ControlInteractivity.cpp">
       <DependentUpon>ControlInteractivity.idl</DependentUpon>
     </ClCompile>
-    <ClCompile Include="ScrollBarVisualStateManager.cpp">
-      <DependentUpon>ScrollBarVisualStateManager.idl</DependentUpon>
-    </ClCompile>
     <ClCompile Include="EventArgs.cpp">
       <DependentUpon>EventArgs.idl</DependentUpon>
     </ClCompile>
@@ -109,7 +103,6 @@
   <ItemGroup>
     <Midl Include="ControlCore.idl" />
     <Midl Include="ControlInteractivity.idl" />
-    <Midl Include="ScrollBarVisualStateManager.idl" />
     <Midl Include="ICoreState.idl" />
     <Midl Include="KeyChord.idl" />
     <Midl Include="EventArgs.idl" />

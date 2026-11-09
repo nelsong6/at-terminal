@@ -20,5 +20,5 @@ exit /b %errorlevel%
 
 :test
 msbuild OpenConsole.slnx %MSBUILD_ARGS% /p:AppxPackageSigningEnabled=false "/t:Terminal\Tests\SettingsModel_UnitTests" || exit /b 1
-bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /select:"@Name='*ApplicationStateTests*' or @Name='*AtLogTests*'"
+bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /select:"@Name='*ApplicationStateTests*' or @Name='*AtLogTests*' or @Name='*RemovedScrollbarSettingsAreDropped*'"
 exit /b %errorlevel%

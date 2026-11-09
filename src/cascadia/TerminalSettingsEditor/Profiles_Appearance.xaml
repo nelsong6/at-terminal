@@ -191,19 +191,6 @@
                         </Grid>
                     </Border>
                 </local:SettingContainer>
-
-                <!--  Scrollbar Visibility  -->
-                <local:SettingContainer x:Name="ScrollbarVisibility"
-                                        x:Uid="Profile_ScrollbarVisibility"
-                                        ClearSettingValue="{x:Bind Profile.ClearScrollState}"
-                                        HasSettingValue="{x:Bind Profile.HasScrollState, Mode=OneWay}"
-                                        SettingOverrideSource="{x:Bind Profile.ScrollStateOverrideSource, Mode=OneWay}">
-                    <ComboBox AutomationProperties.AccessibilityView="Content"
-                              ItemTemplate="{StaticResource EnumComboBoxTemplate}"
-                              ItemsSource="{x:Bind Profile.ScrollStateList, Mode=OneWay}"
-                              SelectedItem="{x:Bind Profile.CurrentScrollState, Mode=TwoWay}"
-                              Style="{StaticResource ComboBoxSettingStyle}" />
-                </local:SettingContainer>
             </StackPanel>
             <StackPanel MaxWidth="{StaticResource StandardControlMaxWidth}">
                 <StackPanel Orientation="Horizontal"

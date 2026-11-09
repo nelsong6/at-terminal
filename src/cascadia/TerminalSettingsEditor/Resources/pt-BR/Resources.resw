@@ -1177,26 +1177,6 @@
     <value>Clareia ou escurece automaticamente o texto para torná-lo mais visível. Mesmo quando ativado, esse ajuste só ocorrerá quando uma combinação de cores de primeiro plano e de fundo resultar em baixo contraste.</value>
     <comment>A description for what the "adjust indistinguishable colors" setting does. Presented near "Profile_AdjustIndistinguishableColors".</comment>
   </data>
-  <data name="Profile_ScrollbarVisibility.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Visibilidade da barra de rolagem</value>
-    <comment>Name for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibility.Header" xml:space="preserve">
-    <value>Visibilidade da barra de rolagem</value>
-    <comment>Header for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityHidden.Content" xml:space="preserve">
-    <value>Oculto</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is hidden.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityVisible.Content" xml:space="preserve">
-    <value>Visível</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is visible but may dynamically shrink.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityAlways.Content" xml:space="preserve">
-    <value>Sempre</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is always visible.</comment>
-  </data>
   <data name="Profile_SnapOnInput.Header" xml:space="preserve">
     <value>Rolar para a entrada de texto ao digitar</value>
     <comment>Header for a control to toggle if keyboard input should automatically scroll to where the input was placed.</comment>
@@ -1348,14 +1328,6 @@
   <data name="Profile_RightClickContextMenu.HelpText" xml:space="preserve">
     <value>Quando habilitado, o Terminal exibirá um menu ao clicar com o botão direito do mouse. Quando desabilitado, clicar com o botão direito do mouse copiará o texto selecionado (ou colará se não houver seleção).</value>
     <comment>A description for what the "Display a menu on right-click" setting does. Presented near "Profile_RightClickContextMenu".</comment>
-  </data>
-  <data name="Profile_ShowMarks.Header" xml:space="preserve">
-    <value>Exibir marcas na barra de rolagem</value>
-    <comment>"Marks" are small visual indicators that can help the user identify the position of useful info in the scrollbar</comment>
-  </data>
-  <data name="Profile_ShowMarks.HelpText" xml:space="preserve">
-    <value>Quando habilitado, o Terminal exibirá marcas na barra de rolagem ao procurar texto ou quando a integração do shell estiver habilitada.</value>
-    <comment>A description for what the "Display marks on the scrollbar" setting does. Presented near "Profile_ShowMarks".</comment>
   </data>
   <data name="Profile_AutoMarkPrompts.Header" xml:space="preserve">
     <value>Marcar automaticamente os prompts ao pressionar Enter</value>

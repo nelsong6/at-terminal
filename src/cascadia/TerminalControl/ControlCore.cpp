@@ -1834,14 +1834,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         return {
             .TotalMatches = totalMatches,
             .CurrentMatch = currentMatch,
-            .SearchInvalidated = searchInvalidated,
             .SearchRegexInvalid = !_searcher.IsOk(),
         };
-    }
-
-    const std::vector<til::point_span>& ControlCore::SearchResultRows() const noexcept
-    {
-        return _searcher.Results();
     }
 
     void ControlCore::ClearSearch()

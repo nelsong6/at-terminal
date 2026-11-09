@@ -316,8 +316,6 @@ namespace winrt::Microsoft::Terminal::Settings
             _SuppressApplicationTitle = profile.SuppressApplicationTitle();
         }
 
-        _ScrollState = profile.ScrollState();
-
         _AntialiasingMode = profile.AntialiasingMode();
 
         if (profile.TabColor())
@@ -342,7 +340,6 @@ namespace winrt::Microsoft::Terminal::Settings
 
         _Elevate = profile.Elevate();
         _AutoMarkPrompts = Feature_ScrollbarMarks::IsEnabled() && profile.AutoMarkPrompts();
-        _ShowMarks = Feature_ScrollbarMarks::IsEnabled() && profile.ShowMarks();
 
         _RightClickContextMenu = profile.RightClickContextMenu();
         _RepositionCursorWithMouse = profile.RepositionCursorWithMouse();

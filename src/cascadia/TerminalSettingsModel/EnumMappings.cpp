@@ -46,7 +46,6 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
     // Profile Settings
     DEFINE_ENUM_MAP(Model::CloseOnExitMode, CloseOnExitMode);
-    DEFINE_ENUM_MAP(Microsoft::Terminal::Control::ScrollbarState, ScrollbarState);
     DEFINE_ENUM_MAP(Windows::UI::Xaml::Media::Stretch, BackgroundImageStretchMode);
     DEFINE_ENUM_MAP(Microsoft::Terminal::Control::TextAntialiasingMode, TextAntialiasingMode);
     DEFINE_ENUM_MAP(Microsoft::Terminal::Core::CursorStyle, CursorStyle);

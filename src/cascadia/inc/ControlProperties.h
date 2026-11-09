@@ -75,7 +75,6 @@
     X(winrt::hstring, CellHeight)                                                                                                                        \
     X(winrt::hstring, Commandline)                                                                                                                       \
     X(winrt::hstring, StartingDirectory)                                                                                                                 \
-    X(winrt::Microsoft::Terminal::Control::ScrollbarState, ScrollState, winrt::Microsoft::Terminal::Control::ScrollbarState::Visible)                    \
     X(winrt::Microsoft::Terminal::Control::TextAntialiasingMode, AntialiasingMode, winrt::Microsoft::Terminal::Control::TextAntialiasingMode::Grayscale) \
     X(winrt::Microsoft::Terminal::Control::GraphicsAPI, GraphicsAPI)                                                                                     \
     X(bool, DisablePartialInvalidation, false)                                                                                                           \
@@ -84,7 +83,6 @@
     X(winrt::Microsoft::Terminal::Control::AmbiguousWidth, AmbiguousWidth, winrt::Microsoft::Terminal::Control::AmbiguousWidth::Narrow)                  \
     X(winrt::Microsoft::Terminal::Control::DefaultInputScope, DefaultInputScope, winrt::Microsoft::Terminal::Control::DefaultInputScope::Default)        \
     X(bool, UseBackgroundImageForWindow, false)                                                                                                          \
-    X(bool, ShowMarks, false)                                                                                                                            \
     X(winrt::Microsoft::Terminal::Control::CopyFormat, CopyFormatting, 0)                                                                                \
     X(bool, RightClickContextMenu, false)                                                                                                                \
     X(winrt::Microsoft::Terminal::Control::PathTranslationStyle, PathTranslationStyle, winrt::Microsoft::Terminal::Control::PathTranslationStyle::None)

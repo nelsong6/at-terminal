@@ -59,6 +59,7 @@ namespace SettingsModelUnitTests
         TEST_METHOD(MultipleActionsAreCollapsed);
 
         TEST_METHOD(ProfileWithInvalidIcon);
+        TEST_METHOD(RemovedScrollbarSettingsAreDropped);
 
     private:
         // Method Description:
@@ -188,7 +189,6 @@ namespace SettingsModelUnitTests
                 "backgroundImageAlignment": "center",
                 "backgroundImageOpacity": 1,
 
-                "scrollbarState": "visible",
                 "snapOnInput": true,
                 "historySize": 9001,
 
@@ -1324,5 +1324,31 @@ namespace SettingsModelUnitTests
         // not be reflected back in settings.json as null *or* as the commandline. The value should be exactly
         // what was written in the settings file.
         VERIFY_ARE_EQUAL(R"(c:\this_icon_had_better_not_exist.tiff)", newResult["profiles"]["list"][0]["icon"].asString());
+    }
+
+    // at-terminal has no scrollbar (ATT-4). A profile written before that
+    // still loads, and writing it back leaves the old keys out. This loads the
+    // profile alone: CI runs these tests outside the package, where the inbox
+    // key bindings a whole settings file loads can't be created.
+    void SerializationTests::RemovedScrollbarSettingsAreDropped()
+    {
+        static constexpr std::string_view profileJson{ R"(
+        {
+            "name": "profile0",
+            "guid": "{6239a42c-0000-49a3-80bd-e8fdd045185c}",
+            "commandline": "cmd.exe",
+            "scrollbarState": "visible",
+            "showMarksOnScrollbar": true,
+            "experimental.showMarksOnScrollbar": true
+        })" };
+
+        const auto profile = implementation::Profile::FromJson(VerifyParseSucceeded(profileJson));
+        const auto result{ profile->ToJson() };
+
+        VERIFY_ARE_EQUAL("profile0", result["name"].asString());
+        VERIFY_ARE_EQUAL("cmd.exe", result["commandline"].asString());
+        VERIFY_IS_FALSE(result.isMember("scrollbarState"));
+        VERIFY_IS_FALSE(result.isMember("showMarksOnScrollbar"));
+        VERIFY_IS_FALSE(result.isMember("experimental.showMarksOnScrollbar"));
     }
 }

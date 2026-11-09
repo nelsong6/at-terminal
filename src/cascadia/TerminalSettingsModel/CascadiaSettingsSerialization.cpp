@@ -1392,11 +1392,9 @@ void CascadiaSettings::_researchOnLoad()
 
         // ------------------------ RE: autoMarkPrompts ------------------------
         auto totalAutoMark = 0;
-        auto totalShowMarks = 0;
         for (const auto&& p : AllProfiles())
         {
             totalAutoMark += p.AutoMarkPrompts() ? 1 : 0;
-            totalShowMarks += p.ShowMarks() ? 1 : 0;
         }
 
         TraceLoggingWrite(
@@ -1404,7 +1402,6 @@ void CascadiaSettings::_researchOnLoad()
             "MarksProfilesUsage",
             TraceLoggingDescription("Event emitted upon settings load, containing the number of profiles opted-in to scrollbar marks"),
             TraceLoggingInt32(totalAutoMark, "NumberOfAutoMarkPromptsProfiles", "Number of profiles for which AutoMarkPrompts is enabled"),
-            TraceLoggingInt32(totalShowMarks, "NumberOfShowMarksProfiles", "Number of profiles for which ShowMarks is enabled"),
             TraceLoggingKeyword(MICROSOFT_KEYWORD_MEASURES),
             TelemetryPrivacyDataTag(PDT_ProductAndServiceUsage));
     }

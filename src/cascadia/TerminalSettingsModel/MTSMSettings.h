@@ -85,7 +85,6 @@ Author(s):
     X(bool, AltGrAliasing, "altGrAliasing", true)                                                                                                              \
     X(hstring, AnswerbackMessage, "answerbackMessage")                                                                                                         \
     X(hstring, Commandline, "commandline", L"%SystemRoot%\\System32\\cmd.exe")                                                                                 \
-    X(Microsoft::Terminal::Control::ScrollbarState, ScrollState, "scrollbarState", Microsoft::Terminal::Control::ScrollbarState::Visible)                      \
     X(Microsoft::Terminal::Control::TextAntialiasingMode, AntialiasingMode, "antialiasingMode", Microsoft::Terminal::Control::TextAntialiasingMode::Grayscale) \
     X(hstring, StartingDirectory, "startingDirectory")                                                                                                         \
     X(IMediaResource, Icon, "icon", implementation::MediaResource::FromString(L"\uE756"))                                                                      \
@@ -99,7 +98,6 @@ Author(s):
     X(Windows::Foundation::Collections::IVector<IMediaResource>, BellSound, "bellSound", nullptr)                                                              \
     X(bool, Elevate, "elevate", false)                                                                                                                         \
     X(bool, AutoMarkPrompts, "autoMarkPrompts", true)                                                                                                          \
-    X(bool, ShowMarks, "showMarksOnScrollbar", false)                                                                                                          \
     X(bool, RepositionCursorWithMouse, "experimental.repositionCursorWithMouse", false)                                                                        \
     X(bool, ReloadEnvironmentVariables, "compatibility.reloadEnvironmentVariables", true)                                                                      \
     X(bool, RainbowSuggestions, "experimental.rainbowSuggestions", false)                                                                                      \

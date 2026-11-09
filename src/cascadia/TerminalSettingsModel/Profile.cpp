@@ -34,7 +34,6 @@ static constexpr std::string_view TabColorKey{ "tabColor" };
 static constexpr std::string_view UnfocusedAppearanceKey{ "unfocusedAppearance" };
 
 static constexpr std::string_view LegacyAutoMarkPromptsKey{ "experimental.autoMarkPrompts" };
-static constexpr std::string_view LegacyShowMarksKey{ "experimental.showMarksOnScrollbar" };
 static constexpr std::string_view LegacyRightClickContextMenuKey{ "experimental.rightClickContextMenu" };
 
 Profile::Profile(guid guid) noexcept :
@@ -197,7 +196,6 @@ void Profile::LayerJson(const Json::Value& json)
 
     // Try to load some legacy keys, to migrate them.
     // Done _before_ the MTSM_PROFILE_SETTINGS, which have the updated keys.
-    JsonUtils::GetValueForKey(json, LegacyShowMarksKey, _ShowMarks);
     JsonUtils::GetValueForKey(json, LegacyAutoMarkPromptsKey, _AutoMarkPrompts);
     JsonUtils::GetValueForKey(json, LegacyRightClickContextMenuKey, _RightClickContextMenu);
 

@@ -43,7 +43,6 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
         // Profile Settings
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, CloseOnExitMode> CloseOnExitMode();
-        static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, Microsoft::Terminal::Control::ScrollbarState> ScrollbarState();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::Windows::UI::Xaml::Media::Stretch> BackgroundImageStretchMode();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::Microsoft::Terminal::Control::TextAntialiasingMode> TextAntialiasingMode();
         static winrt::Windows::Foundation::Collections::IMap<winrt::hstring, winrt::Microsoft::Terminal::Core::CursorStyle> CursorStyle();

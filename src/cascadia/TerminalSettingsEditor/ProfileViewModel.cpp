@@ -38,7 +38,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
     {
         INITIALIZE_BINDABLE_ENUM_SETTING(AntiAliasingMode, TextAntialiasingMode, winrt::Microsoft::Terminal::Control::TextAntialiasingMode, L"Profile_AntialiasingMode", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING_REVERSE_ORDER(CloseOnExitMode, CloseOnExitMode, winrt::Microsoft::Terminal::Settings::Model::CloseOnExitMode, L"Profile_CloseOnExit", L"Content");
-        INITIALIZE_BINDABLE_ENUM_SETTING(ScrollState, ScrollbarState, winrt::Microsoft::Terminal::Control::ScrollbarState, L"Profile_ScrollbarVisibility", L"Content");
         INITIALIZE_BINDABLE_ENUM_SETTING(PathTranslationStyle, PathTranslationStyle, winrt::Microsoft::Terminal::Control::PathTranslationStyle, L"Profile_PathTranslationStyle", L"Content");
 
         _InitializeCurrentBellSounds();
@@ -70,10 +69,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
             else if (viewModelProperty == L"BellStyle")
             {
                 _NotifyChanges(L"IsBellStyleFlagSet", L"BellStylePreview");
-            }
-            else if (viewModelProperty == L"ScrollState")
-            {
-                _NotifyChanges(L"CurrentScrollState");
             }
             else if (viewModelProperty == L"Icon")
             {
@@ -488,10 +483,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         return _unfocusedAppearanceViewModel;
     }
 
-    bool ProfileViewModel::ShowMarksAvailable() const noexcept
-    {
-        return Feature_ScrollbarMarks::IsEnabled();
-    }
     bool ProfileViewModel::AutoMarkPromptsAvailable() const noexcept
     {
         return Feature_ScrollbarMarks::IsEnabled();

@@ -1177,26 +1177,6 @@
     <value>Ilumina u oscurece automáticamente el texto para que sea más visible. Aunque esté habilitado, este ajuste solo se producirá cuando una combinación de colores de primer plano y fondo genere un contraste deficiente.</value>
     <comment>A description for what the "adjust indistinguishable colors" setting does. Presented near "Profile_AdjustIndistinguishableColors".</comment>
   </data>
-  <data name="Profile_ScrollbarVisibility.[using:Windows.UI.Xaml.Automation]AutomationProperties.Name" xml:space="preserve">
-    <value>Visibilidad de la barra de desplazamiento</value>
-    <comment>Name for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibility.Header" xml:space="preserve">
-    <value>Visibilidad de la barra de desplazamiento</value>
-    <comment>Header for a control to select the visibility of the scrollbar in a session.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityHidden.Content" xml:space="preserve">
-    <value>Oculto</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is hidden.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityVisible.Content" xml:space="preserve">
-    <value>Visible</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is visible but may dynamically shrink.</comment>
-  </data>
-  <data name="Profile_ScrollbarVisibilityAlways.Content" xml:space="preserve">
-    <value>Siempre</value>
-    <comment>An option to choose from for the "scrollbar visibility" setting. When selected, the scrollbar is always visible.</comment>
-  </data>
   <data name="Profile_SnapOnInput.Header" xml:space="preserve">
     <value>Desplazarse a la entrada al escribir</value>
     <comment>Header for a control to toggle if keyboard input should automatically scroll to where the input was placed.</comment>
@@ -1348,14 +1328,6 @@
   <data name="Profile_RightClickContextMenu.HelpText" xml:space="preserve">
     <value>Cuando se habilite, el terminal mostrará un menú al hacer clic con el botón derecho. Cuando se deshabilite, al hacer clic con el botón derecho se copiará el texto seleccionado (o se pegará si no hay ninguna selección).</value>
     <comment>A description for what the "Display a menu on right-click" setting does. Presented near "Profile_RightClickContextMenu".</comment>
-  </data>
-  <data name="Profile_ShowMarks.Header" xml:space="preserve">
-    <value>Mostrar marcas en la barra de desplazamiento</value>
-    <comment>"Marks" are small visual indicators that can help the user identify the position of useful info in the scrollbar</comment>
-  </data>
-  <data name="Profile_ShowMarks.HelpText" xml:space="preserve">
-    <value>Cuando está habilitado, el terminal mostrará marcas en la barra de desplazamiento al buscar texto o cuando la integración de shell esté habilitada.</value>
-    <comment>A description for what the "Display marks on the scrollbar" setting does. Presented near "Profile_ShowMarks".</comment>
   </data>
   <data name="Profile_AutoMarkPrompts.Header" xml:space="preserve">
     <value>Marcar automáticamente los avisos al presionar Entrar</value>

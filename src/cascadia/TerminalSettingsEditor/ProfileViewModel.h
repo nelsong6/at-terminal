@@ -95,7 +95,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         void CreateUnfocusedAppearance();
         void DeleteUnfocusedAppearance();
 
-        bool ShowMarksAvailable() const noexcept;
         bool AutoMarkPromptsAvailable() const noexcept;
         bool RepositionCursorWithMouseAvailable() const noexcept;
 
@@ -120,7 +119,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_profile, TabTitle);
         OBSERVABLE_PROJECTED_SETTING(_profile, TabColor);
         OBSERVABLE_PROJECTED_SETTING(_profile, SuppressApplicationTitle);
-        OBSERVABLE_PROJECTED_SETTING(_profile, ScrollState);
         OBSERVABLE_PROJECTED_SETTING(_profile, Padding);
         OBSERVABLE_PROJECTED_SETTING(_profile, Commandline);
         OBSERVABLE_PROJECTED_SETTING(_profile, StartingDirectory);
@@ -135,7 +133,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         OBSERVABLE_PROJECTED_SETTING(_profile, Elevate);
         OBSERVABLE_PROJECTED_SETTING(_profile, ReloadEnvironmentVariables);
         OBSERVABLE_PROJECTED_SETTING(_profile, RightClickContextMenu);
-        OBSERVABLE_PROJECTED_SETTING(_profile, ShowMarks);
         OBSERVABLE_PROJECTED_SETTING(_profile, AutoMarkPrompts);
         OBSERVABLE_PROJECTED_SETTING(_profile, RepositionCursorWithMouse);
         OBSERVABLE_PROJECTED_SETTING(_profile, ForceVTInput);
@@ -150,7 +147,6 @@ namespace winrt::Microsoft::Terminal::Settings::Editor::implementation
         WINRT_PROPERTY(bool, FocusDeleteButton, false);
         GETSET_BINDABLE_ENUM_SETTING(AntiAliasingMode, Microsoft::Terminal::Control::TextAntialiasingMode, AntialiasingMode);
         GETSET_BINDABLE_ENUM_SETTING(CloseOnExitMode, Microsoft::Terminal::Settings::Model::CloseOnExitMode, CloseOnExit);
-        GETSET_BINDABLE_ENUM_SETTING(ScrollState, Microsoft::Terminal::Control::ScrollbarState, ScrollState);
         GETSET_BINDABLE_ENUM_SETTING(PathTranslationStyle, Microsoft::Terminal::Control::PathTranslationStyle, PathTranslationStyle);
 
     private:

@@ -123,7 +123,7 @@ jobs:
           Copy-Item msbuild.binlog $env:GITHUB_WORKSPACE -ErrorAction Ignore
           exit $code
 
-      - name: Test the state file and the log
+      - name: Test the state file, the log and the removed scrollbar settings
         working-directory: ${{ env.TREE }}
         run: ./.forgejo/container/run.ps1 test
 

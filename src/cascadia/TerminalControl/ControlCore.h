@@ -228,7 +228,6 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         void SetEndSelectionPoint(const til::point position);
 
         SearchResults Search(const SearchRequest& request);
-        const std::vector<til::point_span>& SearchResultRows() const noexcept;
         void ClearSearch();
 
         void LeftClickOnTerminal(const til::point terminalPosition,

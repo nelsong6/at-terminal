@@ -6,13 +6,6 @@ import "EventArgs.idl";
 
 namespace Microsoft.Terminal.Control
 {
-    enum ScrollbarState
-    {
-        Visible = 0,
-        Hidden,
-        Always
-    };
-
     enum TextAntialiasingMode
     {
         Grayscale = 0,
@@ -39,7 +32,6 @@ namespace Microsoft.Terminal.Control
     {
         Boolean EnableUnfocusedAcrylic { get; };
         Guid SessionId { get; };
-        ScrollbarState ScrollState { get; };
 
         String FontFace { get; };
         Single FontSize { get; };
@@ -70,7 +62,6 @@ namespace Microsoft.Terminal.Control
         Microsoft.Terminal.Control.TextMeasurement TextMeasurement { get; };
         Microsoft.Terminal.Control.AmbiguousWidth AmbiguousWidth { get; };
         Microsoft.Terminal.Control.DefaultInputScope DefaultInputScope { get; };
-        Boolean ShowMarks { get; };
         Boolean UseBackgroundImageForWindow { get; };
         Boolean RightClickContextMenu { get; };
         Boolean RepositionCursorWithMouse { get; };

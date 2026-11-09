@@ -206,17 +206,6 @@
                               Style="{StaticResource ToggleSwitchInExpanderStyle}" />
             </local:SettingContainer>
 
-            <!--  ShowMarks  -->
-            <local:SettingContainer x:Name="ShowMarks"
-                                    x:Uid="Profile_ShowMarks"
-                                    ClearSettingValue="{x:Bind Profile.ClearShowMarks}"
-                                    HasSettingValue="{x:Bind Profile.HasShowMarks, Mode=OneWay}"
-                                    SettingOverrideSource="{x:Bind Profile.ShowMarksOverrideSource, Mode=OneWay}"
-                                    Visibility="{x:Bind Profile.ShowMarksAvailable}">
-                <ToggleSwitch IsOn="{x:Bind Profile.ShowMarks, Mode=TwoWay}"
-                              Style="{StaticResource ToggleSwitchInExpanderStyle}" />
-            </local:SettingContainer>
-
             <!--  AutoMarkPrompts  -->
             <local:SettingContainer x:Name="AutoMarkPrompts"
                                     x:Uid="Profile_AutoMarkPrompts"
