@@ -53,9 +53,12 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 
 ## Build and release
 
-`.forgejo/workflows/at-terminal.yml` builds every PR and publishes each `main`
-commit as a release `v1.25.<run>.0` holding the signed `.msix` and the
-certificate (`at-terminal.cer`) that signs it. It runs on upstairspc in one kept
+`.forgejo/workflows/at-terminal.yml` builds every PR and releases each `main`
+commit as `v1.25.<run>.0`, holding the signed `.msix` and the certificate
+(`at-terminal.cer`) that signs it. The release is a draft until pipeline-templates'
+`home-sync.yml` publishes it and starts home-sync on every PC, which installs the
+newest release (AHT-86), so each merge reaches the PCs within minutes, behind the
+open window's 30-second countdown. It runs on upstairspc in one kept
 folder, `%USERPROFILE%\at-terminal-ci\tree`, so only what changed recompiles;
 deleting that folder forces a full build (about 12 minutes). Restore, build and
 tests run in a Windows container with that folder mounted, from the image in

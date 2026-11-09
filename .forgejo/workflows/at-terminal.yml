@@ -17,6 +17,8 @@ jobs:
   build:
     runs-on: windows-latest
     timeout-minutes: 180
+    outputs:
+      release-tag: ${{ steps.release.outputs.tag }}
     defaults:
       run:
         shell: pwsh
@@ -163,7 +165,10 @@ jobs:
           path: msbuild.binlog
           if-no-files-found: ignore
 
+      # The release stays a draft: home-sync.yml publishes it and starts every PC, which
+      # takes at-terminal's newest release (AHT-86).
       - name: Release on Forgejo
+        id: release
         if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -181,6 +186,7 @@ jobs:
           if ($code -eq 200 -and -not $release.draft) {
             foreach ($name in $names) { if (-not ($release.assets | Where-Object { $_.name -eq $name -and $_.size -gt 0 })) { throw 'Published release is missing an asset' } }
             Write-Host "$tag is already published"
+            "tag=$tag" | Add-Content $env:GITHUB_OUTPUT
             exit 0
           }
           if ($code -eq 404) {
@@ -192,4 +198,12 @@ jobs:
             }
             Invoke-RestMethod "$api/releases/$($release.id)/assets?name=$name" -Method Post -Headers $headers -Form @{attachment=Get-Item "out/$name"} | Out-Null
           }
-          Invoke-RestMethod "$api/releases/$($release.id)" -Method Patch -Headers $headers -ContentType application/json -Body '{"draft":false}' | Out-Null
+          "tag=$tag" | Add-Content $env:GITHUB_OUTPUT
+
+  home-sync:
+    needs: build
+    if: needs.build.outputs.release-tag != ''
+    uses: romaine-life/pipeline-templates/.forgejo/workflows/home-sync.yml@main
+    secrets: inherit
+    with:
+      release-tag: ${{ needs.build.outputs.release-tag }}
