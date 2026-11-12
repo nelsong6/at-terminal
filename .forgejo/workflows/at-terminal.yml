@@ -32,6 +32,7 @@ jobs:
         with:
           submodules: recursive
 
+
       # Every run builds in one kept folder on the runner, so only what changed
       # recompiles and a merge of a built PR has almost nothing to do. git leaves
       # unchanged files' timestamps alone and keeps ignored build output. Deleting
@@ -101,7 +102,12 @@ jobs:
           $dir = Join-Path $env:LOCALAPPDATA 'at-terminal-ci-tools'
           New-Item -ItemType Directory -Force $dir | Out-Null
           $nuget = Join-Path $dir 'nuget-6.14.0.exe'
-          if (-not (Test-Path $nuget)) { Invoke-WebRequest 'https://dist.nuget.org/win-x86-commandline/v6.14.0/nuget.exe' -OutFile $nuget }
+          if (-not (Test-Path $nuget)) {
+            $package = Join-Path $dir 'nuget.commandline.6.14.0.zip'
+            Invoke-WebRequest 'https://artifacts.home.romaine.life/nuget/nuget/v3/flatcontainer/nuget.commandline/6.14.0/nuget.commandline.6.14.0.nupkg' -OutFile $package
+            $archive = [IO.Compression.ZipFile]::OpenRead($package)
+            try { [IO.Compression.ZipFileExtensions]::ExtractToFile($archive.GetEntry('tools/NuGet.exe'), $nuget, $true) } finally { $archive.Dispose(); Remove-Item -LiteralPath $package }
+          }
           if ((Get-AuthenticodeSignature $nuget).Status -ne 'Valid') { throw 'NuGet signature validation failed' }
           "NUGET_EXE=$nuget" | Add-Content $env:GITHUB_ENV
 
@@ -153,12 +159,12 @@ jobs:
             Copy-Item -Recurse out $env:GITHUB_WORKSPACE
           } finally { Remove-Item -LiteralPath cert.pfx -Force }
 
-      - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+      - uses: forgejo/upload-artifact@v4
         with:
           name: at-terminal
           path: out/*
 
-      - uses: https://data.forgejo.org/forgejo/upload-artifact@v4
+      - uses: forgejo/upload-artifact@v4
         if: failure()
         with:
           name: msbuild-binlog
@@ -207,3 +213,10 @@ jobs:
     secrets: inherit
     with:
       release-tag: ${{ needs.build.outputs.release-tag }}
+
+  # The fetch check reads only the repo, and runs where Python is (FORGEJO-28).
+  fetches:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
