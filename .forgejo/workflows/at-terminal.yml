@@ -55,18 +55,52 @@ jobs:
           "TREE=$tree" | Add-Content $env:GITHUB_ENV
 
       # Restore, build and test run in a Windows container with the kept folder
-      # mounted. The image is rebuilt only when its files change.
+      # mounted. The image is rebuilt only when its Dockerfile or its Build Tools layout
+      # change. The layout, in Artifact Keeper's vs-layouts, is named by the Visual Studio
+      # build and a hash of the bootstrapper's address and .vsconfig; a missing one is made
+      # here and uploaded, so Microsoft is reached once per release or .vsconfig.
+      # VS_BOOTSTRAPPER is the release's fixed-version bootstrapper (Visual Studio's
+      # release history page), which makes only that release.
       - name: Container image
         working-directory: ${{ env.TREE }}
+        env:
+          VS_VERSION: 18.12.12405.243
+          VS_BOOTSTRAPPER: https://download.visualstudio.microsoft.com/download/pr/4aa37a90-1dc9-4507-9e7b-49134341b6c4/5e7c32e82c89b3d69a2c818f3b06679909729b05e94609e3367bbb554d627f55/vs_BuildTools.exe # internet: Microsoft's Build Tools 18.12.0, only when its layout is missing from Artifact Keeper
+          AK_TOKEN: ${{ secrets.AK_VS_LAYOUTS_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
           $docker = 'C:\Program Files\at-home\docker\current\docker.exe'
-          $hashes = (Get-FileHash .forgejo/container/Dockerfile, .forgejo/container/.vsconfig).Hash -join ''
-          $id = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes($hashes))).Substring(0, 12).ToLower()
+          $config = '.forgejo/container/.vsconfig'
+          $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("$env:VS_BOOTSTRAPPER $((Get-FileHash $config).Hash)"))).Substring(0, 12).ToLower()
+          $layout = "$env:VS_VERSION-$hash"
+          $url = "https://artifacts.home.romaine.life/general/vs-layouts/$layout/layout.tar"
+          $id = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("$((Get-FileHash .forgejo/container/Dockerfile).Hash) $layout"))).Substring(0, 12).ToLower()
           $image = "at-terminal-build:$id"
           & $docker image inspect $image *> $null
           if ($LASTEXITCODE) {
-            & $docker build --isolation=process -m 12g -t $image .forgejo/container
+            $code = (Invoke-WebRequest $url -Method Head -SkipHttpErrorCheck).StatusCode
+            if ($code -eq 404) {
+              if (-not $env:AK_TOKEN) { throw "The layout $layout is missing, and AK_VS_LAYOUTS_TOKEN, which uploads it, is not set" }
+              $work = "D:\ci\at-terminal\layout-$layout"
+              Remove-Item -Recurse -Force -ErrorAction Ignore $work
+              New-Item -ItemType Directory "$work\layout" | Out-Null
+              try {
+                $bootstrapper = "$work\vs_BuildTools.exe"
+                Invoke-WebRequest $env:VS_BOOTSTRAPPER -OutFile $bootstrapper
+                if ((Get-FileHash $bootstrapper).Hash -ne ($env:VS_BOOTSTRAPPER -split '/')[-2]) { throw 'The bootstrapper does not match the SHA256 in its address' }
+                $setup = Start-Process $bootstrapper -Wait -PassThru -ArgumentList '--layout', "$work\layout", '--config', (Resolve-Path $config).Path, '--lang', 'en-US', '--quiet', '--wait'
+                if ($setup.ExitCode) { throw "Making the layout exited with $($setup.ExitCode)" }
+                $made = (Get-Content -Raw "$work\layout\ChannelManifest.json" | ConvertFrom-Json).info.buildVersion
+                if ($made -ne $env:VS_VERSION) { throw "The bootstrapper made Visual Studio $made; set VS_VERSION to it" }
+                if (-not (Test-Path "$work\layout\vs_buildtools.exe")) { throw 'The layout has no vs_buildtools.exe for the Dockerfile to run' }
+                Copy-Item $config "$work\layout\at-terminal.vsconfig"
+                & "$env:SystemRoot\System32\tar.exe" -cf "$work\layout.tar" -C "$work\layout" .
+                if ($LASTEXITCODE) { throw "tar exited with $LASTEXITCODE" }
+                $null = Invoke-WebRequest "https://artifacts.home.romaine.life/api/v1/repositories/vs-layouts/artifacts/$layout/layout.tar" -Method Put -InFile "$work\layout.tar" -ContentType application/x-tar -Headers @{'X-API-Key' = $env:AK_TOKEN}
+                Write-Host "Uploaded the layout $layout"
+              } finally { Remove-Item -Recurse -Force -ErrorAction Ignore $work }
+            } elseif ($code -ne 200) { throw "Looking up the layout $layout returned $code" }
+            & $docker build --isolation=process -m 12g --build-arg "LAYOUT=$url" -t $image .forgejo/container
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
           "DOCKER=$docker", "IMAGE=$image" | Add-Content $env:GITHUB_ENV
@@ -123,8 +157,22 @@ jobs:
           if ($text -notmatch 'Version="0\.0\.1\.0"') { throw 'The package version placeholder is missing' }
           [IO.File]::WriteAllText($manifest, $text.Replace('Version="0.0.1.0"', "Version=`"$env:VERSION`""))
 
+      # vcpkg reads its registry at vcpkg.json's builtin-baseline from Forgejo's copy of
+      # microsoft/vcpkg (run.ps1), which holds only the commits forgejo's k8s/copies.txt lists.
+      - name: vcpkg's baseline is on Forgejo
+        env:
+          TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $baseline = (Get-Content -Raw vcpkg.json | ConvertFrom-Json).'builtin-baseline'
+          $code = (Invoke-WebRequest "$env:GITHUB_SERVER_URL/api/v1/repos/microsoft/vcpkg/git/commits/$($baseline)?stat=false&verification=false&files=false" -Headers @{Authorization = "token $env:TOKEN"} -SkipHttpErrorCheck).StatusCode
+          if ($code -eq 404) { throw "Forgejo's microsoft/vcpkg lacks vcpkg.json's builtin-baseline $($baseline): add it to microsoft/vcpkg's lines in forgejo's k8s/copies.txt" }
+          if ($code -ne 200) { throw "Looking up $baseline in Forgejo's microsoft/vcpkg returned $code" }
+
       - name: Build
         working-directory: ${{ env.TREE }}
+        env:
+          FORGEJO_TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
         run: |
           ./.forgejo/container/run.ps1 build
           $code = $LASTEXITCODE
@@ -133,6 +181,8 @@ jobs:
 
       - name: Test the state file, the log and the removed scrollbar settings
         working-directory: ${{ env.TREE }}
+        env:
+          FORGEJO_TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
         run: ./.forgejo/container/run.ps1 test
 
       - name: Sign

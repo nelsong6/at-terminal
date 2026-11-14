@@ -64,11 +64,25 @@ open window's 30-second countdown. It runs on upstairspc in one kept
 folder, `%USERPROFILE%\at-terminal-ci\tree`, so only what changed recompiles;
 deleting that folder forces a full build (about 12 minutes). Restore, build and
 tests run in a Windows container with that folder mounted, from the image in
-`.forgejo/container` (about 15 minutes to build, only when its files change, and
-25 GB). Signing stays on the host. The signing certificate is
+`.forgejo/container` (about 15 minutes to build, only when its files or Build Tools
+layout change, and 25 GB). Signing stays on the host. The signing certificate is
 self-signed, in Key Vault `romaine-kv` (`at-terminal-signing-pfx`,
 `at-terminal-signing-password`) and the repo secrets `AT_TERMINAL_PFX` and
 `AT_TERMINAL_PFX_PASSWORD`.
+
+Nothing the build fetches comes from the internet but a missing Build Tools layout
+(FORGEJO-29). The image installs Visual Studio Build Tools from an offline layout in
+Artifact Keeper's `vs-layouts`, made from the release's fixed-version bootstrapper
+(`VS_BOOTSTRAPPER` and `VS_VERSION` in the workflow, from Visual Studio's release
+history) and uploaded by the workflow the first time a release or `.vsconfig` needs it,
+with the Artifact Keeper service account `svc-vs-layouts`'s token, which can only write
+there (repo secret `AK_VS_LAYOUTS_TOKEN`, kept in OpenBao `secret/services/artifact-keeper`
+as `vs-layouts-token`). NuGet packages come through Artifact Keeper's copy of Windows
+Terminal's feed; vcpkg's ports and tools through its GitHub, MSYS2 and python.org caches
+(`vcpkg-fetch.ps1`, nothing else allowed); and vcpkg's registry from Forgejo's copy of
+microsoft/vcpkg at the commits forgejo's `k8s/copies.txt` lists, so a new
+`builtin-baseline` in `vcpkg.json` needs a line there first. vcpkg's downloads, built
+packages and registry stay in `D:\ci\at-terminal\cache` on upstairspc.
 
 This fork sends nothing upstream: no PRs or issues to microsoft/terminal
 (its `AGENTS.md`).
