@@ -133,30 +133,28 @@ jobs:
           }
           "DOCKER=$docker", "IMAGE=$image" | Add-Content $env:GITHUB_ENV
 
-      - name: Select package version
+      # The one numbering step (PIPT-7). v1.25.N.0 continues the series, so each release's
+      # package version is above the last and MSIX upgrades to it; home-sync installs the
+      # tag without its v. A main build (a push or a dispatch) reserves the tag on the
+      # commit, or keeps the one the commit has; a PR's build is v1.25.N.0-prK.run.
+      - id: version
+        uses: romaine-life/pipeline-templates/actions/release-version@main
+        with:
+          prefix: v1.25
+          suffix: .0
+          publish: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+
+      # A package version is four numbers, so a build that isn't released takes the number
+      # its release would; the build's file and name carry the whole version.
+      - name: Package version
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          FULL: ${{ steps.version.outputs.version }}
         run: |
-          $ErrorActionPreference = 'Stop'
-          $api = "$env:GITHUB_SERVER_URL/api/v1/repos/$env:GITHUB_REPOSITORY"
-          $headers = @{Authorization = "token $env:TOKEN"}
-          $releases = Invoke-RestMethod "$api/releases?limit=100" -Headers $headers
-          $same = $releases | Where-Object { $_.target_commitish -eq $env:GITHUB_SHA -and $_.tag_name -match '^v1\.25\.\d+\.0$' } | Select-Object -First 1
-          if ($same) {
-            $tag = $same.tag_name
-          } else {
-            $numbers = @($releases | ForEach-Object { if ($_.tag_name -match '^v1\.25\.(\d+)\.0$') { [int]$Matches[1] } })
-            $next = if ($numbers.Count) { ($numbers | Measure-Object -Maximum).Maximum + 1 } else { 1 }
-            while ($true) {
-              $tag = "v1.25.$next.0"
-              $old = Invoke-RestMethod "$api/tags/$tag" -Headers $headers -SkipHttpErrorCheck -StatusCodeVariable code
-              if ($code -eq 404 -or ($code -eq 200 -and $old.commit.sha -eq $env:GITHUB_SHA)) { break }
-              if ($code -ne 200) { throw "Tag lookup returned $code" }
-              $next++
-            }
-          }
-          "VERSION=$($tag.Substring(1))", "RELEASE_TAG=$tag" | Add-Content $env:GITHUB_ENV
-          Write-Host "Package version: $tag"
+          $build = $env:FULL.Substring(1)
+          $package = $build.Split('-')[0]
+          if ($package -notmatch '^\d+\.\d+\.\d+\.\d+$') { throw "$env:FULL gives the package version $package, not four numbers" }
+          "BUILD_VERSION=$build", "PACKAGE_VERSION=$package" | Add-Content $env:GITHUB_ENV
+          Write-Host "Build $build, package version $package"
 
       - name: NuGet command line
         run: |
@@ -183,7 +181,7 @@ jobs:
           $manifest = Join-Path $PWD 'src/cascadia/CascadiaPackage/Package-Dev.appxmanifest'
           $text = [IO.File]::ReadAllText($manifest)
           if ($text -notmatch 'Version="0\.0\.1\.0"') { throw 'The package version placeholder is missing' }
-          [IO.File]::WriteAllText($manifest, $text.Replace('Version="0.0.1.0"', "Version=`"$env:VERSION`""))
+          [IO.File]::WriteAllText($manifest, $text.Replace('Version="0.0.1.0"', "Version=`"$env:PACKAGE_VERSION`""))
 
       # vcpkg reads its registry at vcpkg.json's builtin-baseline from Forgejo's copy of
       # microsoft/vcpkg (run.ps1), which holds only the commits forgejo's k8s/copies.txt lists.
@@ -226,7 +224,7 @@ jobs:
           New-Item -ItemType Directory -Force out | Out-Null
           [IO.File]::WriteAllBytes("$PWD\cert.pfx", [Convert]::FromBase64String($env:PFX))
           try {
-            $msix = "out\at-terminal_$($env:VERSION)_x64.msix"
+            $msix = "out\at-terminal_$($env:BUILD_VERSION)_x64.msix"
             Copy-Item $packages[0].FullName $msix
             & $signtool.FullName sign /fd SHA256 /f cert.pfx /p $env:PFX_PASSWORD $msix
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
@@ -253,19 +251,16 @@ jobs:
       # takes at-terminal's newest release (AHT-86).
       - name: Release on Forgejo
         id: release
-        if: github.event_name != 'pull_request' && github.ref == 'refs/heads/main'
+        if: steps.version.outputs.tag != ''
         env:
           TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          TAG: ${{ steps.version.outputs.tag }}
         run: |
           $ErrorActionPreference = 'Stop'
           $api = "$env:GITHUB_SERVER_URL/api/v1/repos/$env:GITHUB_REPOSITORY"
           $headers = @{Authorization = "token $env:TOKEN"}
-          $tag = $env:RELEASE_TAG
-          $names = @("at-terminal_$($env:VERSION)_x64.msix", 'at-terminal.cer')
-          $tagged = Invoke-RestMethod "$api/tags/$tag" -Headers $headers -SkipHttpErrorCheck -StatusCodeVariable code
-          if ($code -eq 404) {
-            Invoke-RestMethod "$api/tags" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target=$env:GITHUB_SHA}|ConvertTo-Json) | Out-Null
-          } elseif ($code -ne 200 -or $tagged.commit.sha -ne $env:GITHUB_SHA) { throw 'Release tag lookup failed or points to another commit' }
+          $tag = $env:TAG
+          $names = @("at-terminal_$($env:BUILD_VERSION)_x64.msix", 'at-terminal.cer')
           $release = Invoke-RestMethod "$api/releases/tags/$tag" -Headers $headers -SkipHttpErrorCheck -StatusCodeVariable code
           if ($code -eq 200 -and -not $release.draft) {
             foreach ($name in $names) { if (-not ($release.assets | Where-Object { $_.name -eq $name -and $_.size -gt 0 })) { throw 'Published release is missing an asset' } }
@@ -274,7 +269,7 @@ jobs:
             exit 0
           }
           if ($code -eq 404) {
-            $release = Invoke-RestMethod "$api/releases" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target_commitish=$env:GITHUB_SHA;name="at-terminal $env:VERSION";body="Built and signed on Forgejo from $env:GITHUB_SHA. https://openproject.romaine.life/wp/FORGEJO-3";draft=$true}|ConvertTo-Json)
+            $release = Invoke-RestMethod "$api/releases" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target_commitish=$env:GITHUB_SHA;name="at-terminal $env:BUILD_VERSION";body="Built and signed on Forgejo from $env:GITHUB_SHA. https://openproject.romaine.life/wp/FORGEJO-3";draft=$true}|ConvertTo-Json)
           } elseif ($code -ne 200) { throw "Release lookup returned $code" }
           foreach ($name in $names) {
             foreach ($old in @($release.assets | Where-Object name -eq $name)) {

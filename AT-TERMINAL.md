@@ -63,8 +63,10 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
 
 ## Build and release
 
-`.forgejo/workflows/at-terminal.yml` builds every PR and releases each `main`
-commit as `v1.25.<run>.0`, holding the signed `.msix` and the certificate
+`.forgejo/workflows/ci.yml` builds every PR and releases each `main` commit as
+`v1.25.N.0`, numbered by pipeline-templates' release-version (prefix `v1.25`, suffix `.0`;
+the package version is the tag without its `v`, and a PR's build is `v1.25.N.0-prK.run`,
+its package version the number before the `-`), holding the signed `.msix` and the certificate
 (`at-terminal.cer`) that signs it. The release is a draft until pipeline-templates'
 `home-sync.yml` publishes it and starts home-sync on every PC, which installs the
 newest release (AHT-86), so each merge reaches the PCs within minutes, behind the
