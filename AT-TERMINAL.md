@@ -3,7 +3,7 @@
 Nelson's build of Windows Terminal 1.25 (https://github.com/microsoft/terminal,
 MIT), installed beside Microsoft's as **at-terminal** and launched by
 `at-terminal`. tmux does all the multiplexing, so this terminal is only its
-window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
+window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
 
 ## What differs from Windows Terminal
 

@@ -269,7 +269,7 @@ jobs:
             exit 0
           }
           if ($code -eq 404) {
-            $release = Invoke-RestMethod "$api/releases" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target_commitish=$env:GITHUB_SHA;name="at-terminal $env:BUILD_VERSION";body="Built and signed on Forgejo from $env:GITHUB_SHA. https://openproject.romaine.life/wp/FORGEJO-3";draft=$true}|ConvertTo-Json)
+            $release = Invoke-RestMethod "$api/releases" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target_commitish=$env:GITHUB_SHA;name="at-terminal $env:BUILD_VERSION";body="Built and signed on Forgejo from $env:GITHUB_SHA. https://openproject.home.romaine.life/wp/FORGEJO-3";draft=$true}|ConvertTo-Json)
           } elseif ($code -ne 200) { throw "Release lookup returned $code" }
           foreach ($name in $names) {
             foreach ($old in @($release.assets | Where-Object name -eq $name)) {
