@@ -20,6 +20,14 @@ window (HOMECFG-60, https://openproject.romaine.life/wp/HOMECFG-60).
   leaves it (F11 and Alt+Enter do nothing). It covers the whole screen even
   with an auto-hide taskbar: stock Windows Terminal leaves 2px unpainted at
   that edge for revealing the taskbar, which full screen doesn't do (ATT-5).
+- **Alt+Tab is the terminal's while it is in front** (TMUX-209). Alt+Tab and
+  Alt+Shift+Tab go to the program in the window as keys (tmux reads M-Tab and
+  M-BTab), not to Windows' window switcher; Ctrl+Alt+Tab and every other window's
+  Alt+Tab stay Windows'. Windows acts on Alt+Tab before any window sees it, so a
+  low-level keyboard hook, on a thread of its own, takes it first and hands it to
+  the focused terminal the way Alt+Space goes (`WindowEmperor`, `AtAltTab.h`). A
+  hook Windows refuses is logged, and Alt+Tab then stays Windows'. Test:
+  `AtAltTabTests`, run by CI.
 - **Its own package.** The Dev branding, renamed: identity `at-terminal`,
   publisher `CN=at-terminal`, alias `at-terminal.exe`, its own settings under
   `%LOCALAPPDATA%\Packages\at-terminal_<hash>\LocalState`. `wt.exe` stays

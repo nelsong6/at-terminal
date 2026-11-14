@@ -4,6 +4,7 @@
 #include "pch.h"
 #include "WindowEmperor.h"
 
+#include <AtAltTab.h>
 #include <AtLog.h>
 #include <CoreWindow.h>
 #include <ScopedResourceLoader.h>
@@ -387,6 +388,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     _app.Logic().ReloadSettings();
 
     _createMessageWindow(windowClassName.c_str());
+    _startAltTabHook();
     _setupGlobalHotkeys();
     _checkWindowsForNotificationIcon();
     _setupSessionPersistence(_app.Logic().Settings().GlobalSettings().ShouldUsePersistedLayout());
@@ -1054,6 +1056,16 @@ LRESULT WindowEmperor::_messageHandler(HWND window, UINT const message, WPARAM c
         case WM_HOTKEY:
             _hotkeyPressed(static_cast<long>(wParam));
             return 0;
+        case WM_ALT_TAB:
+            // The Tab the hook took, sent the way Alt+Space is: to the focused
+            // terminal, which reads the Alt still held.
+            _dispatchSpecialKey(MSG{
+                .hwnd = GetForegroundWindow(),
+                .message = static_cast<UINT>(lParam ? WM_SYSKEYDOWN : WM_SYSKEYUP),
+                .wParam = VK_TAB,
+                .lParam = static_cast<LPARAM>(wParam << 16),
+            });
+            return 0;
         case WM_QUERYENDSESSION:
             // For WM_QUERYENDSESSION and WM_ENDSESSION, refer to:
             // https://docs.microsoft.com/en-us/windows/win32/rstmgr/guidelines-for-applications
@@ -1432,6 +1444,56 @@ void WindowEmperor::_setupGlobalHotkeys()
             _hotkeys.emplace_back(summonArgs);
         }
     }
+}
+
+#pragma endregion
+#pragma region AltTab
+
+// The hook runs on a thread of its own, so a busy window never holds up the
+// desktop's keyboard; it only decides and posts to the message window.
+static std::atomic<HWND> s_altTabTarget{ nullptr };
+static at_alt_tab::Gate s_altTabGate;
+
+static LRESULT CALLBACK altTabHook(const int code, const WPARAM wParam, const LPARAM lParam) noexcept
+{
+    const auto key = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lParam);
+    if (code == HC_ACTION && key->vkCode == VK_TAB)
+    {
+        const auto pressed = [](const int vkey) { return (GetAsyncKeyState(vkey) & 0x8000) != 0; };
+        DWORD foreground = 0;
+        if (const auto window = GetForegroundWindow())
+        {
+            GetWindowThreadProcessId(window, &foreground);
+        }
+        const auto down = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
+        if (s_altTabGate.Take(key->vkCode,
+                              down,
+                              WI_IsFlagSet(key->flags, LLKHF_ALTDOWN),
+                              pressed(VK_CONTROL),
+                              pressed(VK_LWIN) || pressed(VK_RWIN),
+                              foreground == GetCurrentProcessId()))
+        {
+            PostMessageW(s_altTabTarget.load(), WindowEmperor::WM_ALT_TAB, key->scanCode, down);
+            return 1;
+        }
+    }
+    return CallNextHookEx(nullptr, code, wParam, lParam);
+}
+
+void WindowEmperor::_startAltTabHook() const
+{
+    s_altTabTarget = _window.get();
+    std::thread{ [] {
+        if (!SetWindowsHookExW(WH_KEYBOARD_LL, altTabHook, reinterpret_cast<HINSTANCE>(&__ImageBase), 0))
+        {
+            at_log::Write(fmt::format(FMT_COMPILE("Alt+Tab stays with Windows: keyboard hook failed, error {}"), GetLastError()));
+            return;
+        }
+        MSG msg;
+        while (GetMessageW(&msg, nullptr, 0, 0) > 0)
+        {
+        }
+    } }.detach();
 }
 
 #pragma endregion
