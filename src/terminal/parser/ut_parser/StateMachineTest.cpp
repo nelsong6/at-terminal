@@ -85,6 +85,12 @@ public:
 
     bool ActionSs3Dispatch(const wchar_t /* wch */, const VTParameters /* parameters */) override { return true; };
 
+    bool ActionApcDispatch(const std::wstring_view string) override
+    {
+        apcString = string;
+        return true;
+    };
+
     // ActionCsiDispatch is the only method that's actually implemented.
     bool ActionCsiDispatch(const VTID id, const VTParameters parameters) override
     {
@@ -136,6 +142,7 @@ public:
     uint64_t dcsId = 0;
     std::vector<size_t> dcsParams;
     std::wstring dcsDataString;
+    std::wstring apcString;
 };
 
 class Microsoft::Console::VirtualTerminal::StateMachineTest
@@ -160,6 +167,8 @@ class Microsoft::Console::VirtualTerminal::StateMachineTest
     TEST_METHOD(PassThroughUnhandledSplitAcrossWrites);
 
     TEST_METHOD(DcsDataStringsReceivedByHandler);
+
+    TEST_METHOD(ApcStringsAreDispatched);
 
     TEST_METHOD(VtParameterSubspanTest);
 };
@@ -341,6 +350,36 @@ void StateMachineTest::DcsDataStringsReceivedByHandler()
 
     // Verify the control characters were executed (if expected).
     VERIFY_ARE_EQUAL(expectedExecuted, engine.executed);
+}
+
+// at-terminal: an APC string reaches ActionApcDispatch whole, however it is
+// split across writes; SOS and PM strings are still dropped; an APC string
+// that isn't ended by ESC \ is dropped and the sequence that ended it runs.
+void StateMachineTest::ApcStringsAreDispatched()
+{
+    auto enginePtr{ std::make_unique<TestStateMachineEngine>() };
+    auto& engine{ *enginePtr.get() };
+    StateMachine machine{ std::move(enginePtr) };
+
+    machine.ProcessString(L"\033_at;abc\033\\printed");
+    VERIFY_ARE_EQUAL(L"at;abc", engine.apcString);
+    VERIFY_ARE_EQUAL(L"printed", engine.printed);
+
+    engine.apcString.clear();
+    machine.ProcessString(L"\033Xsos string\033\\");
+    machine.ProcessString(L"\033^pm string\033\\");
+    VERIFY_ARE_EQUAL(L"", engine.apcString);
+
+    machine.ProcessString(L"\033_at;one");
+    machine.ProcessString(L"two\033");
+    VERIFY_ARE_EQUAL(L"", engine.apcString);
+    machine.ProcessString(L"\\");
+    VERIFY_ARE_EQUAL(L"at;onetwo", engine.apcString);
+
+    engine.apcString.clear();
+    machine.ProcessString(L"\033_at;cut\033[m");
+    VERIFY_ARE_EQUAL(L"", engine.apcString);
+    VERIFY_ARE_EQUAL(VTID("m"), engine.csiId);
 }
 
 void StateMachineTest::VtParameterSubspanTest()

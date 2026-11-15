@@ -43,6 +43,8 @@ namespace Microsoft::Console::VirtualTerminal
         virtual bool ActionCsiDispatch(const VTID id, const VTParameters parameters) = 0;
         virtual StringHandler ActionDcsDispatch(const VTID id, const VTParameters parameters) = 0;
         virtual bool ActionOscDispatch(const size_t parameter, const std::wstring_view string) = 0;
+        // at-terminal: an APC string, ESC _ ... ESC \, which Windows Terminal drops.
+        virtual bool ActionApcDispatch(const std::wstring_view string) = 0;
         virtual bool ActionSs3Dispatch(const wchar_t wch, const VTParameters parameters) = 0;
 
     protected:

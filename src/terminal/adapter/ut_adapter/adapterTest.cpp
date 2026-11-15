@@ -8,6 +8,9 @@
 #include "../../../renderer/inc/DummyRenderer.hpp"
 
 #include "adaptDispatch.hpp"
+#include "../../../buffer/out/ImageSlice.hpp"
+
+#include <at_protocol.h>
 
 using namespace WEX::Common;
 using namespace WEX::Logging;
@@ -1696,6 +1699,92 @@ public:
         _pDispatch->DeviceStatusReport(DispatchTypes::StatusType::MemoryChecksum, 56);
 
         _testGetSet->ValidateInputEvent(L"\033P56!~0000\033\\");
+    }
+
+    // at-terminal: an at-protocol message, as the parser hands it (the APC
+    // string's contents).
+    static std::wstring _atPayload(const at_proto_msg& msg)
+    {
+        char* apc = nullptr;
+        size_t len = 0;
+        VERIFY_ARE_EQUAL(0, at_proto_encode(&msg, &apc, &len));
+        const std::wstring payload{ apc + 2, apc + len - 2 };
+        free(apc);
+        return payload;
+    }
+
+    // at-terminal: tmux's hello is answered with this build's version.
+    TEST_METHOD(AtProtocolHelloIsAnswered)
+    {
+        _testGetSet->PrepData();
+        at_proto_msg hello{};
+        hello.kind = AT_PROTO_HELLO;
+        strncpy_s(hello.u.hello.version, "the-other-side", _TRUNCATE);
+        _pDispatch->AtProtocolMessage(_atPayload(hello));
+
+        at_proto_msg mine{};
+        mine.kind = AT_PROTO_HELLO;
+        strncpy_s(mine.u.hello.version, at_proto_version(), _TRUNCATE);
+        const auto expected = L"\033_" + _atPayload(mine) + L"\033\\";
+        _testGetSet->ValidateInputEvent(expected.c_str());
+    }
+
+    // at-terminal: a stored picture's cell, placed, is in that row's image
+    // slice at that column and nowhere else.
+    TEST_METHOD(AtProtocolPlacesAPictureCell)
+    {
+        _testGetSet->PrepData();
+        // A 2x2-cell picture of 4x2 pixels: the left half red, the right blue.
+        uint8_t pixels[4 * 2 * 3] = {};
+        for (auto y = 0; y < 2; y++)
+        {
+            for (auto x = 0; x < 4; x++)
+            {
+                pixels[(y * 4 + x) * 3 + (x < 2 ? 0 : 2)] = 255;
+            }
+        }
+        at_proto_msg store{};
+        store.kind = AT_PROTO_IMAGE_STORE;
+        store.u.image_store.id = 5;
+        store.u.image_store.width = 4;
+        store.u.image_store.height = 2;
+        store.u.image_store.cols = 2;
+        store.u.image_store.rows = 2;
+        store.u.image_store.format = AT_PROTO_RGB;
+        store.u.image_store.pixels = pixels;
+        store.u.image_store.len = sizeof pixels;
+        _pDispatch->AtProtocolMessage(_atPayload(store));
+
+        at_proto_msg place{};
+        place.kind = AT_PROTO_IMAGE_PLACE;
+        place.u.image_place.id = 5;
+        place.u.image_place.col = 7;
+        place.u.image_place.row = 3;
+        place.u.image_place.src_col = 1;
+        place.u.image_place.src_row = 0;
+        place.u.image_place.cols = 1;
+        place.u.image_place.rows = 1;
+        _pDispatch->AtProtocolMessage(_atPayload(place));
+
+        const auto top = _testGetSet->_viewport.top;
+        const auto slice = _testGetSet->_textBuffer->GetRowByOffset(top + 3).GetImageSlice();
+        VERIFY_IS_NOT_NULL(slice);
+        VERIFY_ARE_EQUAL(7, slice->ColumnOffset());
+        VERIFY_ARE_EQUAL(slice->CellSize().width, slice->PixelWidth());
+        const auto pixel = slice->Pixels(7)[0];
+        VERIFY_ARE_EQUAL(255, static_cast<int>(pixel.rgbBlue));
+        VERIFY_ARE_EQUAL(0, static_cast<int>(pixel.rgbRed));
+        VERIFY_IS_NULL(_testGetSet->_textBuffer->GetRowByOffset(top + 2).GetImageSlice());
+        VERIFY_IS_NULL(_testGetSet->_textBuffer->GetRowByOffset(top + 4).GetImageSlice());
+
+        // A dropped picture can't be placed again.
+        at_proto_msg drop{};
+        drop.kind = AT_PROTO_IMAGE_DROP;
+        drop.u.image_drop.id = 5;
+        _pDispatch->AtProtocolMessage(_atPayload(drop));
+        place.u.image_place.row = 8;
+        _pDispatch->AtProtocolMessage(_atPayload(place));
+        VERIFY_IS_NULL(_testGetSet->_textBuffer->GetRowByOffset(top + 8).GetImageSlice());
     }
 
     TEST_METHOD(DeviceStatus_PrivateStatusTests)

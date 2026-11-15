@@ -169,6 +169,10 @@ public:
                                            const DispatchTypes::SixelBackground backgroundSelect,
                                            const VTParameter backgroundColor) = 0; // SIXEL
 
+    // at-terminal: a message in the language at-tmux and at-terminal share
+    // (at-protocol), the APC string's contents from "at;" on.
+    virtual void AtProtocolMessage(const std::wstring_view string) = 0;
+
     virtual StringHandler DownloadDRCS(const VTInt fontNumber,
                                        const VTParameter startChar,
                                        const DispatchTypes::DrcsEraseControl eraseControl,

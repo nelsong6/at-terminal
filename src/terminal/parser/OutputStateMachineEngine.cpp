@@ -938,6 +938,24 @@ bool OutputStateMachineEngine::ActionSs3Dispatch(const wchar_t /*wch*/, const VT
 }
 
 // Routine Description:
+// - at-terminal: an APC string. One starting "at;" is a message in the
+//   language at-tmux and at-terminal share (at-protocol); any other is
+//   dropped, as Windows Terminal drops every APC string.
+// Arguments:
+// - string - the string between ESC _ and ESC \.
+// Return Value:
+// - true always: an APC string is never passed through.
+bool OutputStateMachineEngine::ActionApcDispatch(const std::wstring_view string)
+{
+    if (string.starts_with(L"at;"))
+    {
+        _dispatch->AtProtocolMessage(string);
+    }
+    _ClearLastChar();
+    return true;
+}
+
+// Routine Description:
 // - OSC 4 ; c ; spec ST
 //      c: the index of the ansi color table
 //      spec: The colors are specified by name or RGB specification as per XParseColor

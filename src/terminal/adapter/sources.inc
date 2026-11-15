@@ -37,6 +37,7 @@ SOURCES= \
     ..\PageManager.cpp \
     ..\SixelParser.cpp \
     ..\adaptDispatchGraphics.cpp \
+    ..\AtProtocol.cpp \
     ..\terminalOutput.cpp \
 
 INCLUDES = \

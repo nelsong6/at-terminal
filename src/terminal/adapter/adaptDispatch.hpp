@@ -166,6 +166,8 @@ namespace Microsoft::Console::VirtualTerminal
                                        const DispatchTypes::SixelBackground backgroundSelect,
                                        const VTParameter backgroundColor) override; // SIXEL
 
+        void AtProtocolMessage(const std::wstring_view string) override; // at-terminal
+
         StringHandler DownloadDRCS(const VTInt fontNumber,
                                    const VTParameter startChar,
                                    const DispatchTypes::DrcsEraseControl eraseControl,
@@ -314,6 +316,21 @@ namespace Microsoft::Console::VirtualTerminal
         PageManager _pages;
         friend class SixelParser;
         std::shared_ptr<SixelParser> _sixelParser;
+
+        // at-terminal: a picture tmux sent by ID (at-protocol image-store),
+        // shown where it places cells of it (AtProtocol.cpp).
+        struct AtPicture
+        {
+            uint32_t width = 0; // pixels
+            uint32_t height = 0;
+            uint32_t cols = 0; // the cells the whole picture fills
+            uint32_t rows = 0;
+            uint32_t bytesPerPixel = 3; // 3 RGB, 4 RGBA
+            std::vector<uint8_t> pixels;
+        };
+        std::unordered_map<uint32_t, AtPicture> _atPictures;
+        void _atHello();
+        void _atPlace(const uint32_t id, const til::point at, const til::point from, const til::size cells);
         std::unique_ptr<FontBuffer> _fontBuffer;
         std::shared_ptr<MacroBuffer> _macroBuffer;
         std::optional<unsigned int> _initialCodePage;

@@ -61,6 +61,20 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   `src/cascadia/inc/AtLog.h`. A fail fast or a kill leaves no line of its own, so
   the next start says the previous run ended without saying how.
 
+- **It speaks at-protocol** (ATT-7, ATT-9): the language at-tmux and at-terminal share,
+  one package both compile (https://forgejo.romaine.life/romaine-life/at-protocol), since
+  neither is ever used without the other. A message is an APC string, `ESC _ at; … ESC \`;
+  stock Windows Terminal drops every APC string, and this parser collects an APC string
+  and dispatches it (`StateMachine::_EventApcString`, `ActionApcDispatch`), SOS and PM
+  still dropped. tmux says hello with its version and the terminal answers with its own
+  (`AtProtocol.cpp`); tmux decides what a mismatch means. tmux then sends each picture
+  once by ID and places cells of it at screen cells, which go into the text buffer's
+  image slices, the structure sixel images are kept in, so scrolling and redrawing are
+  the buffer's. The version is the one place a hello can differ, and it is chosen once:
+  `REF` in `dep/vcpkg-overlay-ports/at-protocol/portfile.cmake`, the at-protocol commit
+  the build compiles in; at-tmux pins the same commit and the two are released together.
+  Tests: `ApcStringsAreDispatched` (parser) and `AtProtocol*` (adapter), run by CI.
+
 ## Build and release
 
 `.forgejo/workflows/ci.yml` builds every PR and releases each `main` commit as

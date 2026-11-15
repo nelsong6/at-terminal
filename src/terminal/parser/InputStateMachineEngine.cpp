@@ -589,6 +589,16 @@ bool InputStateMachineEngine::ActionOscDispatch(const size_t /*parameter*/, cons
 }
 
 // Method Description:
+// - at-terminal: an APC string on the input stream is passed through, as an
+//   OSC is: at-tmux reads its own messages from it.
+// Return Value:
+// - false, so the sequence is passed on.
+bool InputStateMachineEngine::ActionApcDispatch(const std::wstring_view /*string*/) noexcept
+{
+    return false;
+}
+
+// Method Description:
 // - Writes a sequence of keypresses to the buffer based on the wch,
 //      vkey and modifiers passed in. Will create both the appropriate key downs
 //      and ups for that key for writing to the input. Will also generate

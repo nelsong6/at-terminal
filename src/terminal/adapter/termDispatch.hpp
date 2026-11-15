@@ -156,6 +156,8 @@ public:
                                    const DispatchTypes::SixelBackground /*backgroundSelect*/,
                                    const VTParameter /*backgroundColor*/) override { return nullptr; }; // SIXEL
 
+    void AtProtocolMessage(const std::wstring_view /*string*/) override {} // at-terminal
+
     StringHandler DownloadDRCS(const VTInt /*fontNumber*/,
                                const VTParameter /*startChar*/,
                                const DispatchTypes::DrcsEraseControl /*eraseControl*/,

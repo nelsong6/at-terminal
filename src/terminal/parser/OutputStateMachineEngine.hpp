@@ -46,6 +46,8 @@ namespace Microsoft::Console::VirtualTerminal
 
         bool ActionOscDispatch(const size_t parameter, const std::wstring_view string) override;
 
+        bool ActionApcDispatch(const std::wstring_view string) override;
+
         bool ActionSs3Dispatch(const wchar_t wch, const VTParameters parameters) noexcept override;
 
         const ITermDispatch& Dispatch() const noexcept;

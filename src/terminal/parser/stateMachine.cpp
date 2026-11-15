@@ -23,6 +23,7 @@ StateMachine::StateMachine(std::unique_ptr<IStateMachineEngine> engine, const bo
     _subParameterLimitOverflowed(false),
     _subParameterCounter(0),
     _oscString{},
+    _apcString{},
     _cachedSequence{ std::nullopt }
 {
     // The state machine must always accept C1 controls for the input engine,
@@ -626,6 +627,7 @@ void StateMachine::_ActionClear() noexcept
 
     _oscString.clear();
     _oscParameter = 0;
+    _apcString.clear();
 
     _dcsStringHandler = nullptr;
 }
@@ -698,6 +700,33 @@ void StateMachine::_ActionOscDispatch()
     _trace.TraceOnAction(L"OscDispatch");
     _trace.DispatchSequenceTrace(_SafeExecute([=]() {
         return _engine->ActionOscDispatch(_oscParameter, _oscString);
+    }));
+}
+
+// Routine Description:
+// - at-terminal: collects a character of an APC string.
+// Arguments:
+// - wch - Character to collect.
+// Return Value:
+// - <none>
+void StateMachine::_ActionApcPut(const wchar_t wch)
+{
+    _trace.TraceOnAction(L"ApcPut");
+
+    _apcString.push_back(wch);
+}
+
+// Routine Description:
+// - at-terminal: triggers the ApcDispatch action with the collected APC string.
+// Arguments:
+// - <none>
+// Return Value:
+// - <none>
+void StateMachine::_ActionApcDispatch()
+{
+    _trace.TraceOnAction(L"ApcDispatch");
+    _trace.DispatchSequenceTrace(_SafeExecute([=]() {
+        return _engine->ActionApcDispatch(_apcString);
     }));
 }
 
@@ -1049,6 +1078,33 @@ void StateMachine::_EnterSosPmApcString() noexcept
 }
 
 // Routine Description:
+// - at-terminal: moves the state machine into the ApcString state, where an
+//   APC string is collected for the engine (at-protocol's messages travel as
+//   APC strings), where Windows Terminal ignored it with SOS and PM.
+// Arguments:
+// - <none>
+// Return Value:
+// - <none>
+void StateMachine::_EnterApcString() noexcept
+{
+    _state = VTStates::ApcString;
+    _trace.TraceStateChange(L"ApcString");
+}
+
+// Routine Description:
+// - at-terminal: moves the state machine into the ApcTermination state, after
+//   the ESC of an APC string's ESC \, as OscTermination does for OSC.
+// Arguments:
+// - <none>
+// Return Value:
+// - <none>
+void StateMachine::_EnterApcTermination() noexcept
+{
+    _state = VTStates::ApcTermination;
+    _trace.TraceStateChange(L"ApcTermination");
+}
+
+// Routine Description:
 // - Processes a character event into an Action that occurs while in the Ground state.
 //   Events in this state will:
 //   1. Execute C0 control characters
@@ -1139,6 +1195,10 @@ void StateMachine::_EventEscape(const wchar_t wch)
         else if (_isDcsIndicator(wch))
         {
             _EnterDcsEntry();
+        }
+        else if (_isApcIndicator(wch) && !_isEngineForInput)
+        {
+            _EnterApcString();
         }
         else if (_isSosIndicator(wch) || _isPmIndicator(wch) || _isApcIndicator(wch))
         {
@@ -1831,6 +1891,53 @@ void StateMachine::_EventSosPmApcString(const wchar_t /*wch*/) noexcept
 }
 
 // Routine Description:
+// - at-terminal: processes a character event while in the ApcString state.
+//   Events in this state will:
+//   1. On ESC, enter the ApcTermination state, waiting for the \ of ESC \.
+//   2. Collect everything else into the APC string.
+// Arguments:
+// - wch - Character that triggered the event
+// Return Value:
+// - <none>
+void StateMachine::_EventApcString(const wchar_t wch)
+{
+    _trace.TraceOnEvent(L"ApcString");
+    if (_isEscape(wch))
+    {
+        _EnterApcTermination();
+    }
+    else
+    {
+        _ActionApcPut(wch);
+    }
+}
+
+// Routine Description:
+// - at-terminal: handles the two-character termination of an APC string.
+//   Events in this state will:
+//   1. Trigger the ApcDispatch action on a string terminator.
+//   2. Otherwise, treat this as a normal escape character event, dropping
+//      the string.
+// Arguments:
+// - wch - Character that triggered the event
+// Return Value:
+// - <none>
+void StateMachine::_EventApcTermination(const wchar_t wch)
+{
+    _trace.TraceOnEvent(L"ApcTermination");
+    if (_isStringTerminatorIndicator(wch))
+    {
+        _ActionApcDispatch();
+        _EnterGround();
+    }
+    else
+    {
+        _EnterEscape();
+        _EventEscape(wch);
+    }
+}
+
+// Routine Description:
 // - Entry to the state machine. Takes characters one by one and processes them according to the state machine rules.
 // Arguments:
 // - wch - New character to operate upon
@@ -1868,7 +1975,8 @@ void StateMachine::ProcessCharacter(const wchar_t wch)
         }
     }
     // Don't go to escape from the OSC string/param states - ESC can be used to terminate OSC strings.
-    else if (_isEscape(wch) && _state != VTStates::OscString && _state != VTStates::OscParam)
+    // Nor from the APC string state, which ends the same way (at-terminal).
+    else if (_isEscape(wch) && _state != VTStates::OscString && _state != VTStates::OscParam && _state != VTStates::ApcString)
     {
         _ActionInterrupt();
         _EnterEscape();
@@ -1918,6 +2026,10 @@ void StateMachine::ProcessCharacter(const wchar_t wch)
             return _EventDcsPassThrough(wch);
         case VTStates::SosPmApcString:
             return _EventSosPmApcString(wch);
+        case VTStates::ApcString:
+            return _EventApcString(wch);
+        case VTStates::ApcTermination:
+            return _EventApcTermination(wch);
         default:
             return;
         }

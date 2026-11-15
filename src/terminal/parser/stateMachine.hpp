@@ -108,6 +108,8 @@ namespace Microsoft::Console::VirtualTerminal
         void _ActionOscParam(const wchar_t wch) noexcept;
         void _ActionOscPut(const wchar_t wch);
         void _ActionOscDispatch();
+        void _ActionApcPut(const wchar_t wch);
+        void _ActionApcDispatch();
         void _ActionSs3Dispatch(const wchar_t wch);
         void _ActionDcsDispatch(const wchar_t wch);
 
@@ -135,6 +137,8 @@ namespace Microsoft::Console::VirtualTerminal
         void _EnterDcsIntermediate() noexcept;
         void _EnterDcsPassThrough() noexcept;
         void _EnterSosPmApcString() noexcept;
+        void _EnterApcString() noexcept;
+        void _EnterApcTermination() noexcept;
 
         void _EventGround(const wchar_t wch);
         void _EventEscape(const wchar_t wch);
@@ -156,6 +160,8 @@ namespace Microsoft::Console::VirtualTerminal
         void _EventDcsParam(const wchar_t wch);
         void _EventDcsPassThrough(const wchar_t wch);
         void _EventSosPmApcString(const wchar_t wch) noexcept;
+        void _EventApcString(const wchar_t wch);
+        void _EventApcTermination(const wchar_t wch);
 
         void _AccumulateTo(const wchar_t wch, VTInt& value) noexcept;
 
@@ -185,7 +191,9 @@ namespace Microsoft::Console::VirtualTerminal
             DcsIntermediate,
             DcsParam,
             DcsPassThrough,
-            SosPmApcString
+            SosPmApcString,
+            ApcString,
+            ApcTermination
         };
 
         Microsoft::Console::VirtualTerminal::ParserTracing _trace;
@@ -220,6 +228,7 @@ namespace Microsoft::Console::VirtualTerminal
 
         std::wstring _oscString;
         VTInt _oscParameter;
+        std::wstring _apcString;
 
         IStateMachineEngine::StringHandler _dcsStringHandler;
 
