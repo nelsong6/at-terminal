@@ -795,6 +795,8 @@ void WindowEmperor::_summonAllWindows() const
 
     TerminalApp::SummonWindowBehavior args;
     args.ToggleVisibility(false);
+    args.MoveToCurrentDesktop(false);
+    args.ToMonitor(TerminalApp::MonitorBehavior::InPlace);
 
     for (const auto& window : _windows)
     {

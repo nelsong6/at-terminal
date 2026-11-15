@@ -12,7 +12,7 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   an elevated window, a default-terminal handoff. The guard is
   `TerminalPage::_CanOpenPane`, and `WindowEmperor` refuses a second window.
 - **Launching it again** (by any commandline) brings the open window forward
-  and runs nothing in it.
+  on its existing virtual desktop and monitor, like Win+`, and runs nothing in it.
 - **Launching it comes to the front.** When Windows refuses the first window
   the foreground, as it does a program started by a background process, the
   window takes it the way the summon key does.
@@ -22,8 +22,9 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   that edge for revealing the taskbar, which full screen doesn't do (ATT-5).
 - **Alt+Tab is the terminal's while it is in front** (TMUX-209). Alt+Tab and
   Alt+Shift+Tab go to the program in the window as keys (tmux reads M-Tab and
-  M-BTab), not to Windows' window switcher; Ctrl+Alt+Tab and every other window's
-  Alt+Tab stay Windows'. Windows acts on Alt+Tab before any window sees it, so a
+  M-BTab), not to Windows' window switcher. The at-tmux server also takes Alt+Tab
+  from other apps to summon this window and open the same windows menu (TMUX-220);
+  Ctrl+Alt+Tab stays Windows'. Windows acts on Alt+Tab before any window sees it, so a
   low-level keyboard hook, on a thread of its own, takes it first and hands it to
   the focused terminal the way Alt+Space goes (`WindowEmperor`, `AtAltTab.h`). A
   hook Windows refuses is logged, and Alt+Tab then stays Windows'. Test:
