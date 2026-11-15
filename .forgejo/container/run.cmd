@@ -7,6 +7,7 @@ set VCPKG_BINARY_SOURCES=clear;files,C:\cache\vcpkg-archives,readwrite
 set X_VCPKG_REGISTRIES_CACHE=C:\cache\vcpkg-registries
 set X_VCPKG_ASSET_SOURCES=clear;x-script,pwsh -NoLogo -NoProfile -File C:\b\.forgejo\container\vcpkg-fetch.ps1 {url} {dst};x-block-origin
 set VCPKG_DISABLE_METRICS=1
+set "VCPKG_KEEP_ENV_VARS=GIT_TERMINAL_PROMPT;GIT_CONFIG_PARAMETERS;%VCPKG_KEEP_ENV_VARS%"
 if not exist %VCPKG_DOWNLOADS% mkdir %VCPKG_DOWNLOADS%
 if not exist C:\cache\vcpkg-archives mkdir C:\cache\vcpkg-archives
 if not exist %X_VCPKG_REGISTRIES_CACHE% mkdir %X_VCPKG_REGISTRIES_CACHE%
