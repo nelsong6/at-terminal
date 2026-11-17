@@ -1,52 +1,89 @@
-name: CI
+name: Build
 
+# at-terminal's build, the one job no suite covers (PIPT-12): MSBuild in a Windows container
+# over one kept folder on upstairspc. pipeline-templates' release suite numbers the release,
+# drafts it, publishes it and starts home-sync (fleet.json's nelsong6/at-terminal, release
+# part msix); this builds the package. A pull request builds and tests it. On main the release
+# suite dispatches this with the tag it reserved, and this signs the package, uploads it to
+# that draft and hands back to the release suite.
 on:
   pull_request:
-  push:
-    branches: [main]
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
+    inputs:
+      release_tag:
+        description: The tag the release suite reserved
+        type: string
+        required: true
+      source_sha:
+        description: The commit that release is built from
+        type: string
+        required: true
+      release_repository:
+        description: The repository whose draft takes the package
+        type: string
+        required: true
+      part_id:
+        description: The release part this builds
+        type: string
+        required: true
+      callback_workflow:
+        description: The workflow that finishes the release
+        type: string
+        default: release/ci.yml
+      suites_ref:
+        description: The pipeline-templates ref the release runs on
+        type: string
+        default: main
 
 permissions:
   contents: write
 
-# One group for every run, pull requests included: every build uses the one kept
-# folder on the runner, and the runner takes several jobs at once.
+# Every build uses the one kept folder, so they run one at a time: the runner that takes the
+# at-terminal label runs one job. A new push to a pull request cancels its out-of-date build.
 concurrency:
-  group: at-terminal-ci
-  cancel-in-progress: false
+  group: at-terminal-build-${{ github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
-  changes:
+  # Whether the pull request changed what the release is built from: the release suite's
+  # release.build inputs with fleet.json's at-terminal entry, and the version it would take.
+  scope:
+    if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     outputs:
-      code: ${{ steps.diff.outputs.code }}
+      build: ${{ steps.scope.outputs.build }}
+      prefix: ${{ steps.scope.outputs.prefix }}
+      suffix: ${{ steps.scope.outputs.suffix }}
+      suite-sha: ${{ steps.scope.outputs.suite-sha }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
-      # The fetch check reads only the repo, and runs where Python is (FORGEJO-28).
-      - uses: romaine-life/pipeline-templates/actions/check-fetches@main
-      - id: diff
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          repository: romaine-life/pipeline-templates
+          ref: ${{ vars.CI_SUITES_REF || 'main' }}
+          path: _ci
+          persist-credentials: false
+      - uses: ./_ci/actions/suite
+      - id: scope
+        run: node _ci/suites/inputs.mjs release
         env:
-          EVENT: ${{ github.event_name }}
           BASE: ${{ github.event.pull_request.base.sha }}
-        run: |
-          if [ "$EVENT" != pull_request ]; then
-            echo code=true >> "$GITHUB_OUTPUT"
-            exit 0
-          fi
-          files=$(git diff --name-only "$BASE...HEAD")
-          if grep -qvE '\.md$|^docs/|^LICENSE$' <<< "$files"; then
-            echo code=true >> "$GITHUB_OUTPUT"
-          fi
+          TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
   build:
-    needs: changes
-    if: needs.changes.outputs.code == 'true'
-    runs-on: windows-latest
+    needs: scope
+    if: >-
+      always() && !cancelled() && (
+        (github.event_name == 'pull_request' && needs.scope.outputs.build == 'true') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == format('refs/heads/{0}', github.event.repository.default_branch) &&
+          inputs.release_repository == github.repository)
+      )
+    runs-on: at-terminal
     timeout-minutes: 180
-    outputs:
-      release-tag: ${{ steps.release.outputs.tag }}
     defaults:
       run:
         shell: pwsh
@@ -55,11 +92,22 @@ jobs:
       CMAKE_BUILD_PARALLEL_LEVEL: "4"
       _CL_: /MP4
       DOCKER_HOST: npipe:////./pipe/docker_engine
+      DOCKER: C:\Program Files\at-home\docker\current\docker.exe
     steps:
       - uses: actions/checkout@v4
         with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          persist-credentials: false
           submodules: recursive
 
+      - uses: actions/checkout@v4
+        with:
+          repository: romaine-life/pipeline-templates
+          ref: ${{ inputs.suites_ref || needs.scope.outputs.suite-sha }}
+          path: _ci
+          persist-credentials: false
+
+      - uses: ./_ci/actions/suite
 
       # Every run builds in one kept folder on the runner, so only what changed
       # recompiles and a merge of a built PR has almost nothing to do. git leaves
@@ -68,9 +116,13 @@ jobs:
       # MSBuild's tracking logs drop files under AppData or Temp unless they sit in
       # the project's own folder, and obj and bin never do, so the folder stays
       # outside AppData.
+      # A cancelled build stops its docker client but not the container, which would
+      # go on writing to the folder: the runner runs one job, so a build container
+      # still there now is a cancelled one's, and goes first.
       - name: Move to the kept build tree
         run: |
           $ErrorActionPreference = 'Stop'
+          & $env:DOCKER rm -f at-terminal-build *> $null
           $tree = Join-Path $env:USERPROFILE 'at-terminal-ci\tree'
           if (-not (Test-Path "$tree\.git")) { git init -q $tree }
           git -C $tree fetch -q --depth=1 --no-tags $env:GITHUB_WORKSPACE HEAD
@@ -97,7 +149,7 @@ jobs:
           AK_TOKEN: ${{ secrets.AK_VS_LAYOUTS_TOKEN }}
         run: |
           $ErrorActionPreference = 'Stop'
-          $docker = 'C:\Program Files\at-home\docker\current\docker.exe'
+          $docker = $env:DOCKER
           $config = '.forgejo/container/.vsconfig'
           $hash = [Convert]::ToHexString([Security.Cryptography.SHA256]::HashData([Text.Encoding]::UTF8.GetBytes("$env:VS_BOOTSTRAPPER $((Get-FileHash $config).Hash)"))).Substring(0, 12).ToLower()
           $layout = "$env:VS_VERSION-$hash"
@@ -131,24 +183,25 @@ jobs:
             & $docker build --isolation=process -m 12g --build-arg "LAYOUT=$url" -t $image .forgejo/container
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
           }
-          "DOCKER=$docker", "IMAGE=$image" | Add-Content $env:GITHUB_ENV
+          "IMAGE=$image" | Add-Content $env:GITHUB_ENV
 
-      # The one numbering step (PIPT-7). v1.25.N.0 continues the series, so each release's
-      # package version is above the last and MSIX upgrades to it; home-sync installs the
-      # tag without its v. A main build (a push or a dispatch) reserves the tag on the
-      # commit, or keeps the one the commit has; a PR's build is v1.25.N.0-prK.run.
+      # The one numbering step is the release suite's (PIPT-7): v1.25.N.0 continues the
+      # series, so each release's package version is above the last and MSIX upgrades to it.
+      # A release builds the tag the suite reserved; a PR's build is v1.25.N.0-prK.run, the
+      # number its release would take.
       - id: version
-        uses: romaine-life/pipeline-templates/actions/release-version@main
+        if: github.event_name == 'pull_request'
+        uses: ./_ci/actions/release-version
         with:
-          prefix: v1.25
-          suffix: .0
-          publish: ${{ github.event_name != 'pull_request' && github.ref == 'refs/heads/main' }}
+          prefix: ${{ needs.scope.outputs.prefix }}
+          suffix: ${{ needs.scope.outputs.suffix }}
+          publish: 'false'
 
       # A package version is four numbers, so a build that isn't released takes the number
       # its release would; the build's file and name carry the whole version.
       - name: Package version
         env:
-          FULL: ${{ steps.version.outputs.version }}
+          FULL: ${{ inputs.release_tag || steps.version.outputs.version }}
         run: |
           $build = $env:FULL.Substring(1)
           $package = $build.Split('-')[0]
@@ -205,7 +258,9 @@ jobs:
           Copy-Item msbuild.binlog $env:GITHUB_WORKSPACE -ErrorAction Ignore
           exit $code
 
-      - name: Test the state file, the log and the removed scrollbar settings
+      # A check, so on the pull request only: a release builds what its PR tested.
+      - name: Test the state file, the log, the removed scrollbar settings and at-protocol
+        if: github.event_name == 'pull_request'
         working-directory: ${{ env.TREE }}
         env:
           FORGEJO_TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
@@ -236,13 +291,15 @@ jobs:
             if ($LASTEXITCODE) { exit $LASTEXITCODE }
             $cert = [Security.Cryptography.X509Certificates.X509Certificate2]::new("$PWD\cert.pfx", $env:PFX_PASSWORD, [Security.Cryptography.X509Certificates.X509KeyStorageFlags]::EphemeralKeySet)
             try { [IO.File]::WriteAllBytes("$PWD\out\at-terminal.cer", $cert.Export('Cert')) } finally { $cert.Dispose() }
-            Copy-Item -Recurse out $env:GITHUB_WORKSPACE
+            Remove-Item -Recurse -Force -ErrorAction Ignore "$env:GITHUB_WORKSPACE\dist"
+            Copy-Item -Recurse out "$env:GITHUB_WORKSPACE\dist"
           } finally { Remove-Item -LiteralPath cert.pfx -Force }
 
       - uses: forgejo/upload-artifact@v4
+        if: github.event_name == 'pull_request'
         with:
           name: at-terminal
-          path: out/*
+          path: dist/*
 
       - uses: forgejo/upload-artifact@v4
         if: failure()
@@ -251,42 +308,28 @@ jobs:
           path: msbuild.binlog
           if-no-files-found: ignore
 
-      # The release stays a draft: home-sync.yml publishes it and starts every PC, which
-      # takes at-terminal's newest release (AHT-86).
-      - name: Release on Forgejo
-        id: release
-        if: steps.version.outputs.tag != ''
+      # The package goes to the draft the release suite reserved, which then publishes it
+      # and starts home-sync on every PC (AHT-86); a failed build tells it so, and the
+      # release fails rather than waiting on this part.
+      - name: Hand the package to the release
+        if: github.event_name == 'workflow_dispatch'
         env:
-          TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          TAG: ${{ steps.version.outputs.tag }}
-        run: |
-          $ErrorActionPreference = 'Stop'
-          $api = "$env:GITHUB_SERVER_URL/api/v1/repos/$env:GITHUB_REPOSITORY"
-          $headers = @{Authorization = "token $env:TOKEN"}
-          $tag = $env:TAG
-          $names = @("at-terminal_$($env:BUILD_VERSION)_x64.msix", 'at-terminal.cer', 'at-protocol.txt')
-          $release = Invoke-RestMethod "$api/releases/tags/$tag" -Headers $headers -SkipHttpErrorCheck -StatusCodeVariable code
-          if ($code -eq 200 -and -not $release.draft) {
-            foreach ($name in $names) { if (-not ($release.assets | Where-Object { $_.name -eq $name -and $_.size -gt 0 })) { throw 'Published release is missing an asset' } }
-            Write-Host "$tag is already published"
-            "tag=$tag" | Add-Content $env:GITHUB_OUTPUT
-            exit 0
-          }
-          if ($code -eq 404) {
-            $release = Invoke-RestMethod "$api/releases" -Method Post -Headers $headers -ContentType application/json -Body (@{tag_name=$tag;target_commitish=$env:GITHUB_SHA;name="at-terminal $env:BUILD_VERSION";body="Built and signed on Forgejo from $env:GITHUB_SHA. https://openproject.home.romaine.life/wp/FORGEJO-3";draft=$true}|ConvertTo-Json)
-          } elseif ($code -ne 200) { throw "Release lookup returned $code" }
-          foreach ($name in $names) {
-            foreach ($old in @($release.assets | Where-Object name -eq $name)) {
-              Invoke-RestMethod "$api/releases/$($release.id)/assets/$($old.id)" -Method Delete -Headers $headers | Out-Null
-            }
-            Invoke-RestMethod "$api/releases/$($release.id)/assets?name=$name" -Method Post -Headers $headers -Form @{attachment=Get-Item "out/$name"} | Out-Null
-          }
-          "tag=$tag" | Add-Content $env:GITHUB_OUTPUT
+          RELEASE_SERVER_URL: ${{ github.server_url }}
+          RELEASE_REPOSITORY: ${{ inputs.release_repository }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          PART_ID: ${{ inputs.part_id }}
+          VERSION: ${{ inputs.release_tag }}
+          TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
+        run: node _ci/suites/release/complete-external.mjs
 
-  home-sync:
-    needs: build
-    if: needs.build.outputs.release-tag != ''
-    uses: romaine-life/pipeline-templates/.forgejo/workflows/home-sync.yml@main
-    secrets: inherit
-    with:
-      release-tag: ${{ needs.build.outputs.release-tag }}
+      - name: Tell the release this part failed
+        if: failure() && github.event_name == 'workflow_dispatch'
+        env:
+          RELEASE_SERVER_URL: ${{ github.server_url }}
+          RELEASE_REPOSITORY: ${{ inputs.release_repository }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+          PART_ID: ${{ inputs.part_id }}
+          VERSION: ${{ inputs.release_tag }}
+          TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
+          COMPLETION: failure
+        run: node _ci/suites/release/complete-external.mjs

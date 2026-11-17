@@ -21,7 +21,8 @@ $env:GIT_CONFIG_VALUE_2 = $signIn
 # vcpkg clears its port-build environment unless these names are explicitly retained.
 $env:VCPKG_KEEP_ENV_VARS = (@('GIT_CONFIG_COUNT') +
     @(0..([int]$env:GIT_CONFIG_COUNT - 1) | ForEach-Object { "GIT_CONFIG_KEY_$_"; "GIT_CONFIG_VALUE_$_" })) -join ';'
-& $env:DOCKER run --rm --isolation=process -m 40g `
+# Named, so the next build removes one a cancelled build left running (build.yml).
+& $env:DOCKER run --rm --name at-terminal-build --isolation=process -m 40g `
     -e GIT_TERMINAL_PROMPT=0 -e "GIT_CONFIG_PARAMETERS='credential.helper='" `
     -e VCPKG_MAX_CONCURRENCY -e CMAKE_BUILD_PARALLEL_LEVEL -e _CL_ `
     -e GIT_CONFIG_COUNT -e GIT_CONFIG_KEY_0 -e GIT_CONFIG_VALUE_0 -e GIT_CONFIG_KEY_1 -e GIT_CONFIG_VALUE_1 -e GIT_CONFIG_KEY_2 -e GIT_CONFIG_VALUE_2 `

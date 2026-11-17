@@ -78,14 +78,20 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
 
 ## Build and release
 
-`.forgejo/workflows/ci.yml` builds every PR and releases each `main` commit as
+The release comes from pipeline-templates' `release` suite (PIPT-12; this repository's
+entry in its `fleet.json`), and the build from `.forgejo/workflows/build.yml`, the one job
+no suite covers. A PR whose change reaches the build (the suite's `release.build` inputs and
+the entry's own) is built and tested. A `main` commit that changes them is released as
 `v1.25.N.0`, numbered by pipeline-templates' release-version (prefix `v1.25`, suffix `.0`;
 the package version is the tag without its `v`, and a PR's build is `v1.25.N.0-prK.run`,
-its package version the number before the `-`), holding the signed `.msix` and the certificate
-(`at-terminal.cer`) that signs it. The release is a draft until pipeline-templates'
-`home-sync.yml` publishes it and starts home-sync on every PC, which installs the
-newest release (AHT-86), so each merge reaches the PCs within minutes, behind the
-open window's 30-second countdown. It runs on upstairspc in one kept
+its package version the number before the `-`), holding the signed `.msix`, the certificate
+(`at-terminal.cer`) that signs it and `at-protocol.txt`: the suite reserves the tag and a
+draft, dispatches `build.yml` with it (the release part `msix`), which builds, signs and
+uploads the three files and hands back, and the suite's `home-sync.yml` publishes the draft
+and starts home-sync on every PC, which installs the newest release (AHT-86), so each merge
+reaches the PCs within minutes, behind the open window's 30-second countdown. A release
+doesn't run the tests again: its PR ran them. The build runs on upstairspc's
+`at-terminal` runner, which takes one job at a time, in one kept
 folder, `%USERPROFILE%\at-terminal-ci\tree`, so only what changed recompiles;
 deleting that folder forces a full build (about 12 minutes). Restore, build and
 tests run in a Windows container with that folder mounted, from the image in
