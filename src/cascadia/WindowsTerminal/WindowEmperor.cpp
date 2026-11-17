@@ -786,6 +786,10 @@ bool WindowEmperor::_summonWindow(const SummonWindowSelectionArgs& args) const
     }
 
     window->HandleSummon(args.SummonBehavior);
+    if (args.MinimizeOthers)
+    {
+        window->MinimizeOtherWindows();
+    }
     return true;
 }
 
@@ -1361,6 +1365,7 @@ void WindowEmperor::_hotkeyPressed(const long hotkeyIndex)
     SummonWindowSelectionArgs args;
     args.WindowName = summonArgs.Name();
     args.OnCurrentDesktop = summonArgs.Desktop() == DesktopBehavior::OnCurrent;
+    args.MinimizeOthers = true;
     args.SummonBehavior.MoveToCurrentDesktop(summonArgs.Desktop() == DesktopBehavior::ToCurrent);
     args.SummonBehavior.ToggleVisibility(summonArgs.ToggleVisibility());
     args.SummonBehavior.DropdownDuration(summonArgs.DropdownDuration());

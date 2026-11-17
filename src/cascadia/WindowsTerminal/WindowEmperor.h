@@ -44,6 +44,8 @@ private:
         uint64_t WindowID = 0;
         std::wstring_view WindowName;
         bool OnCurrentDesktop = false;
+        // The summon key only (ATT-13): minimize the other windows on the window's desktop.
+        bool MinimizeOthers = false;
         winrt::TerminalApp::SummonWindowBehavior SummonBehavior;
     };
 

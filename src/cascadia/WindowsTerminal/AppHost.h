@@ -25,6 +25,7 @@ public:
     bool OnDirectKeyEvent(uint32_t vkey, uint8_t scanCode, bool extended, bool down);
     void SetTaskbarProgress(const winrt::Windows::Foundation::IInspectable& sender, const winrt::Windows::Foundation::IInspectable& args);
     safe_void_coroutine HandleSummon(winrt::TerminalApp::SummonWindowBehavior args) const;
+    safe_void_coroutine MinimizeOtherWindows() const;
     void DispatchCommandline(winrt::TerminalApp::CommandlineArgs args);
 
 private:

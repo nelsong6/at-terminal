@@ -9,6 +9,7 @@
 #include <til/latch.h>
 
 #include "VirtualDesktopUtils.h"
+#include <AtMinimizeOthers.h>
 #include "WindowEmperor.h"
 #include "../types/inc/utils.hpp"
 
@@ -878,6 +879,80 @@ safe_void_coroutine AppHost::HandleSummon(const winrt::TerminalApp::SummonWindow
         }
         // If GetCurrentVirtualDesktopId failed, then just leave the window
         // where it is. Nothing else to be done :/
+    }
+}
+
+// The summon key's second half (ATT-13): with the window in front, minimize every
+// other window on its virtual desktop that can be minimized, so the desktop
+// background shows through the terminal. Each is minimized without activating,
+// so the terminal keeps the foreground.
+safe_void_coroutine AppHost::MinimizeOtherWindows() const
+{
+    const auto hwnd = _window->GetHandle();
+    const auto desktopManager = getDesktopManager();
+    if (!hwnd || !desktopManager)
+    {
+        co_return;
+    }
+
+    // Cross-process COM into explorer.exe, like HandleSummon: not on the UI thread.
+    co_await winrt::resume_background();
+
+    // A summon that toggled the window away leaves nothing to show through.
+    if (IsIconic(hwnd))
+    {
+        co_return;
+    }
+
+    // The window's own desktop, not the current one: when the summon switched
+    // desktops, Explorer may still be finishing the switch.
+    GUID ourDesktop{};
+    if (FAILED_LOG(desktopManager->GetWindowDesktopId(hwnd, &ourDesktop)))
+    {
+        co_return;
+    }
+
+    std::vector<HWND> windows;
+    EnumWindows([](HWND w, LPARAM l) noexcept -> BOOL {
+        reinterpret_cast<std::vector<HWND>*>(l)->push_back(w);
+        return TRUE;
+    },
+                reinterpret_cast<LPARAM>(&windows));
+
+    const auto ourProcess = GetCurrentProcessId();
+    const auto shellWindow = GetShellWindow();
+    const auto taskbar = FindWindowW(L"Shell_TrayWnd", nullptr);
+
+    for (const auto w : windows)
+    {
+        DWORD process = 0;
+        GetWindowThreadProcessId(w, &process);
+        DWORD cloaked = 0;
+        std::ignore = DwmGetWindowAttribute(w, DWMWA_CLOAKED, &cloaked, sizeof(cloaked));
+
+        at_minimize_others::Window info;
+        info.ours = process == ourProcess;
+        info.visible = IsWindowVisible(w) != FALSE;
+        info.minimized = IsIconic(w) != FALSE;
+        info.owned = ::GetWindow(w, GW_OWNER) != nullptr;
+        info.shell = w == shellWindow || w == taskbar;
+        info.cloakedByApp = (cloaked & ~static_cast<DWORD>(DWM_CLOAKED_SHELL)) != 0;
+        info.style = GetWindowLongW(w, GWL_STYLE);
+        info.exStyle = GetWindowLongW(w, GWL_EXSTYLE);
+        if (!at_minimize_others::ShouldMinimize(info))
+        {
+            continue;
+        }
+
+        GUID desktop{};
+        if (FAILED(desktopManager->GetWindowDesktopId(w, &desktop)) || desktop != ourDesktop)
+        {
+            continue;
+        }
+
+        // Async, so a hung program can't hold the rest up. One running elevated
+        // refuses it (Windows doesn't let a lower process send it messages) and stays.
+        ShowWindowAsync(w, SW_SHOWMINNOACTIVE);
     }
 }
 

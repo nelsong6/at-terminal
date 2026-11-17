@@ -13,6 +13,15 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   `TerminalPage::_CanOpenPane`, and `WindowEmperor` refuses a second window.
 - **Launching it again** (by any commandline) brings the open window forward
   on its existing virtual desktop and monitor, like Win+`, and runs nothing in it.
+- **Win+` clears the desktop behind it** (ATT-13). After the summon key brings
+  the window forward on its virtual desktop, every other window on that desktop
+  that can be minimized is (another program's visible top-level window with a
+  minimize button, not a tool window or one owned by another), without taking
+  the foreground from the terminal, so the desktop background shows through its
+  translucency. Only the summon key does this; launching it again, the
+  notification area and Alt+Tab from tmux just bring it forward. A program
+  running elevated refuses it and stays. `AtMinimizeOthers.h`; test:
+  `AtMinimizeOthersTests`, run by CI.
 - **Launching it comes to the front.** When Windows refuses the first window
   the foreground, as it does a program started by a background process, the
   window takes it the way the summon key does.
