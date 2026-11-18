@@ -68,6 +68,8 @@ jobs:
           path: _ci
           persist-credentials: false
       - uses: ./_ci/actions/suite
+        with:
+          token: ${{ github.token }}
       - id: scope
         run: node _ci/suites/inputs.mjs release
         env:
@@ -108,6 +110,8 @@ jobs:
           persist-credentials: false
 
       - uses: ./_ci/actions/suite
+        with:
+          token: ${{ github.token }}
 
       # Every run builds in one kept folder on the runner, so only what changed
       # recompiles and a merge of a built PR has almost nothing to do. git leaves
