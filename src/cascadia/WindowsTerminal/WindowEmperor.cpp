@@ -1562,38 +1562,40 @@ static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const 
     if (s_winTapOn.load() && key->dwExtraInfo != s_winTapMaskTag)
     {
         // A key already down before this event is a held key's repeat.
-        switch (s_winTapGate.Key(key->vkCode,
-                                 down,
-                                 pressed(static_cast<int>(key->vkCode)),
-                                 pressed(VK_CONTROL) || pressed(VK_MENU) || pressed(VK_SHIFT)))
+        if (s_winTapGate.Tap(key->vkCode,
+                             down,
+                             pressed(static_cast<int>(key->vkCode)),
+                             pressed(VK_CONTROL) || pressed(VK_MENU) || pressed(VK_SHIFT)))
         {
-        case at_win_tap::Act::Mask:
-        {
-            // Queued behind this Win press, so Windows sees a key between it
-            // and its release and keeps Start shut. Refused, Start opens too.
-            INPUT mask[2]{};
-            for (auto& input : mask)
+            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_WIN_TAP, 0, 0);
+            // This release is held back and sent again behind the mask key, so
+            // Windows sees a key between Win's press and release and keeps
+            // Start shut. Windows processes keys sent from the hook at once,
+            // before this call returns, so Win is released before the hook
+            // takes this one. If any of the three is refused, the real release
+            // goes on and Start opens too, but Win is never left down.
+            INPUT keys[3]{};
+            for (auto& input : keys)
             {
                 input.type = INPUT_KEYBOARD;
-                input.ki.wVk = at_win_tap::MaskKey;
                 input.ki.dwExtraInfo = s_winTapMaskTag;
             }
-            mask[1].ki.dwFlags = KEYEVENTF_KEYUP;
-            if (SendInput(2, mask, sizeof(INPUT)) != 2)
+            keys[0].ki.wVk = at_win_tap::MaskKey;
+            keys[1].ki.wVk = at_win_tap::MaskKey;
+            keys[1].ki.dwFlags = KEYEVENTF_KEYUP;
+            keys[2].ki.wVk = gsl::narrow_cast<WORD>(key->vkCode);
+            keys[2].ki.wScan = gsl::narrow_cast<WORD>(key->scanCode);
+            keys[2].ki.dwFlags = KEYEVENTF_KEYUP | KEYEVENTF_EXTENDEDKEY;
+            const auto sent = SendInput(3, keys, sizeof(INPUT));
+            if (sent == 3)
             {
-                try
-                {
-                    at_log::Write(fmt::format(FMT_COMPILE("Win tap: mask key refused, error {}"), GetLastError()));
-                }
-                CATCH_LOG();
+                return 1;
             }
-            break;
-        }
-        case at_win_tap::Act::Summon:
-            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_WIN_TAP, 0, 0);
-            break;
-        default:
-            break;
+            try
+            {
+                at_log::Write(fmt::format(FMT_COMPILE("Win tap: {} of the 3 masking keys sent, error {}"), sent, GetLastError()));
+            }
+            CATCH_LOG();
         }
     }
 

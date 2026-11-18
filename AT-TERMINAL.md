@@ -37,10 +37,13 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
 - **Win pressed and released on its own does what Win+` does** (ATT-16), from
   any app. Win with any other key, or with Ctrl, Alt or Shift held, stays
   Windows'; Ctrl+Esc or the Start button opens Start. Windows opens Start on a
-  Win release with no other key since its press, so when a press could be a tap
-  the keyboard hook (the Alt+Tab one, below) sends one unassigned key (0xE8,
-  AutoHotkey's mask key) while Win is still down; the real Win press and release
-  pass through untouched, so Win is never left stuck down. The tap is on only
+  Win release with no other key since its press, so the keyboard hook (the
+  Alt+Tab one, below) holds back a tap's release and sends in its place one
+  unassigned key (0xE8, AutoHotkey's mask key) and then the release. If Windows
+  refuses any of those, the real release goes on (Start opens too), so Win is
+  never left down. The mask key can't go at the press: a key sent from inside
+  the hook is processed before the press it follows, and Start still opened
+  (tested on upstairspc). The tap is on only
   while a summon hotkey is bound to Win+`. An elevated window in front keeps its
   keys from the hook, so there Win opens Start as usual. `AtWinTap.h`; test:
   `AtWinTapTests`, run by CI.
