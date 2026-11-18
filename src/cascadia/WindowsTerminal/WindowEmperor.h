@@ -79,7 +79,8 @@ private:
     winrt::TerminalApp::App _app{ nullptr };
     std::vector<std::shared_ptr<::AppHost>> _windows;
     std::vector<winrt::Microsoft::Terminal::Settings::Model::GlobalSummonArgs> _hotkeys;
-    // The summon hotkey bound to Win+`, which a bare Win tap repeats (ATT-16); -1 for none.
+    // The summon hotkey bound to Win+` (ATT-16): the Win tap is on while there is one, and
+    // summons through it directly if Windows refuses the keys the tap sends; -1 for none.
     int _winTapHotkey = -1;
     NOTIFYICONDATA _notificationIcon{};
     UINT WM_TASKBARCREATED = 0;

@@ -1546,8 +1546,8 @@ void WindowEmperor::_setupGlobalHotkeys()
 static std::atomic<HWND> s_hookTarget{ nullptr };
 static at_alt_tab::Gate s_altTabGate;
 static at_win_tap::Gate s_winTapGate;
-// Marks the mask key the hook sends, so it doesn't read its own key.
-static constexpr ULONG_PTR s_winTapMaskTag = 0x41545754; // "ATWT"
+// Marks the keys the hook sends, so it doesn't read its own keys.
+static constexpr ULONG_PTR s_winTapTag = 0x41545754; // "ATWT"
 
 static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const LPARAM lParam) noexcept
 {
@@ -1559,7 +1559,7 @@ static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const 
     const auto pressed = [](const int vkey) { return (GetAsyncKeyState(vkey) & 0x8000) != 0; };
     const auto down = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
 
-    if (s_winTapOn.load() && key->dwExtraInfo != s_winTapMaskTag)
+    if (s_winTapOn.load() && key->dwExtraInfo != s_winTapTag)
     {
         // A key already down before this event is a held key's repeat.
         if (s_winTapGate.Tap(key->vkCode,
@@ -1567,21 +1567,22 @@ static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const 
                              pressed(static_cast<int>(key->vkCode)),
                              pressed(VK_CONTROL) || pressed(VK_MENU) || pressed(VK_SHIFT)))
         {
-            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_WIN_TAP, 0, 0);
-            // This release is held back and sent again behind the mask key, so
-            // Windows sees a key between Win's press and release and keeps
+            // The tap is Win+`: this release is held back and sent again behind
+            // a press and release of `, so everything that answers Win+` sees
+            // it as one (this window's summon hotkey, and at-tmux's hook, which
+            // opens the at menu when the terminal is already in front), and
+            // Windows, seeing a key between Win's press and release, keeps
             // Start shut. Windows processes keys sent from the hook at once,
-            // before this call returns, so Win is released before the hook
-            // takes this one. If any of the three is refused, the real release
-            // goes on and Start opens too, but Win is never left down.
+            // before this call returns, so ` comes while Win is still down.
             INPUT keys[3]{};
             for (auto& input : keys)
             {
                 input.type = INPUT_KEYBOARD;
-                input.ki.dwExtraInfo = s_winTapMaskTag;
+                input.ki.dwExtraInfo = s_winTapTag;
             }
-            keys[0].ki.wVk = at_win_tap::MaskKey;
-            keys[1].ki.wVk = at_win_tap::MaskKey;
+            keys[0].ki.wVk = at_win_tap::BacktickVkey;
+            keys[0].ki.wScan = at_win_tap::BacktickScanCode;
+            keys[1] = keys[0];
             keys[1].ki.dwFlags = KEYEVENTF_KEYUP;
             keys[2].ki.wVk = gsl::narrow_cast<WORD>(key->vkCode);
             keys[2].ki.wScan = gsl::narrow_cast<WORD>(key->scanCode);
@@ -1591,9 +1592,12 @@ static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const 
             {
                 return 1;
             }
+            // Refused: the real release goes on (Start opens too, but Win is
+            // never left down), and the window is summoned directly.
+            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_WIN_TAP, 0, 0);
             try
             {
-                at_log::Write(fmt::format(FMT_COMPILE("Win tap: {} of the 3 masking keys sent, error {}"), sent, GetLastError()));
+                at_log::Write(fmt::format(FMT_COMPILE("Win tap: {} of the 3 Win+` keys sent, error {}"), sent, GetLastError()));
             }
             CATCH_LOG();
         }

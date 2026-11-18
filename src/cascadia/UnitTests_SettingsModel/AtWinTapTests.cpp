@@ -1,5 +1,5 @@
-// Tests for the bare Win tap (ATT-16): which Win releases end a tap, summoning
-// at-terminal with Start kept shut.
+// Tests for the bare Win tap (ATT-16): which Win releases end a tap, sent on
+// as Win+` with Start kept shut.
 
 #include "pch.h"
 
