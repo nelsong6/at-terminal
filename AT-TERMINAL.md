@@ -11,6 +11,18 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   duplicate, new window, move or drag a tab or pane out, the settings UI,
   an elevated window, a default-terminal handoff. The guard is
   `TerminalPage::_CanOpenPane`, and `WindowEmperor` refuses a second window.
+- **An off-screen window for window-shot** (ATT-15, AHT-169). `at-terminal --offscreen
+  <x>,<y>,<width>,<height> <commandline>` is a second at-terminal process, apart from
+  the one with the window: it takes no part in the one-window handoff (its message
+  window has a class of its own, so no launch reaches it), and registers no hotkeys,
+  Alt+Tab hook, notification icon or default-terminal handoff, and saves no layout.
+  Its one window runs the commandline full screen, as the real window does, but over
+  the given rectangle in physical pixels, which window-shot (at-home-tools) puts off
+  every monitor; it is a tool window, so it has no taskbar button or Alt+Tab entry,
+  and is never activated. Windows still composes it, so PrintWindow draws it as it
+  would look on screen. A bad rectangle or commandline writes `offscreen refused` to
+  the log and exits without a window or dialog. `AtOffscreen.h`; test:
+  `AtOffscreenTests`, run by CI.
 - **Launching it again** (by any commandline) brings the open window forward
   on its existing virtual desktop and monitor, like Win+`, and runs nothing in it.
 - **Win+` clears the desktop behind it** (ATT-13). After the summon key brings

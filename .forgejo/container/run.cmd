@@ -28,7 +28,7 @@ exit /b %errorlevel%
 
 :test
 msbuild OpenConsole.slnx %MSBUILD_ARGS% /p:AppxPackageSigningEnabled=false "/t:Terminal\Tests\SettingsModel_UnitTests" || exit /b 1
-bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /select:"@Name='*ApplicationStateTests*' or @Name='*AtLogTests*' or @Name='*AtAltTabTests*' or @Name='*AtMinimizeOthersTests*' or @Name='*RemovedScrollbarSettingsAreDropped*'" || exit /b 1
+bin\x64\Release\UnitTests_SettingsModel\te.exe bin\x64\Release\UnitTests_SettingsModel\SettingsModel.Unit.Tests.dll /select:"@Name='*ApplicationStateTests*' or @Name='*AtLogTests*' or @Name='*AtAltTabTests*' or @Name='*AtMinimizeOthersTests*' or @Name='*AtOffscreenTests*' or @Name='*RemovedScrollbarSettingsAreDropped*'" || exit /b 1
 rem at-protocol (ATT-9): the parser's APC strings and the dispatcher's messages.
 msbuild src\terminal\parser\ut_parser\Parser.UnitTests.vcxproj %MSBUILD_ARGS% "/p:SolutionDir=C:\b\\" || exit /b 1
 msbuild src\terminal\adapter\ut_adapter\Adapter.UnitTests.vcxproj %MSBUILD_ARGS% "/p:SolutionDir=C:\b\\" || exit /b 1

@@ -39,6 +39,7 @@
     <ClCompile Include="AtLogTests.cpp" />
     <ClCompile Include="AtAltTabTests.cpp" />
     <ClCompile Include="AtMinimizeOthersTests.cpp" />
+    <ClCompile Include="AtOffscreenTests.cpp" />
     <ClCompile Include="ProfileTests.cpp" />
     <ClCompile Include="ColorSchemeTests.cpp" />
     <ClCompile Include="KeyBindingsTests.cpp" />

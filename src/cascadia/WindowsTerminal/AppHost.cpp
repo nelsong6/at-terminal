@@ -10,6 +10,7 @@
 
 #include "VirtualDesktopUtils.h"
 #include <AtMinimizeOthers.h>
+#include <AtOffscreen.h>
 #include "WindowEmperor.h"
 #include "../types/inc/utils.hpp"
 
@@ -493,6 +494,21 @@ void AppHost::_HandleCreateWindow(const HWND /* hwnd */, const til::rect& propos
 void AppHost::_initialResizeAndRepositionWindow(const HWND hwnd, til::rect proposedRect, LaunchMode& launchMode)
 {
     launchMode = _windowLogic.GetLaunchMode();
+
+    // at-terminal --offscreen starts where it stays, off every monitor, so it
+    // takes that monitor's DPI and never shows anywhere it can be seen.
+    if (const auto& offscreen = at_offscreen::Window())
+    {
+        LOG_IF_WIN32_BOOL_FALSE(SetWindowPos(hwnd,
+                                             HWND_BOTTOM,
+                                             offscreen->left,
+                                             offscreen->top,
+                                             offscreen->right - offscreen->left,
+                                             offscreen->bottom - offscreen->top,
+                                             SWP_NOACTIVATE));
+        _window->RefreshCurrentDPI();
+        return;
+    }
 
     // Acquire the actual initial position
     auto initialPos = _windowLogic.GetInitialPosition(proposedRect.left, proposedRect.top);

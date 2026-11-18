@@ -2,6 +2,7 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
+#include <AtOffscreen.h>
 #include "IslandWindow.h"
 #include "../types/inc/Viewport.hpp"
 #include "resource.h"
@@ -148,7 +149,11 @@ void IslandWindow::MakeWindow() noexcept
     // but it works just fine when the window is in the TOPMOST group. But if
     // you enable it always, activating the window will remove our DWM frame
     // entirely. Weird.
-    WINRT_VERIFY(CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | (_alwaysOnTop ? WS_EX_TOPMOST : 0),
+    //
+    // at-terminal --offscreen's window (AtOffscreen.h) is a tool window, with no
+    // taskbar button or Alt+Tab entry, that is never activated.
+    const DWORD offscreenStyle = at_offscreen::Active() ? WS_EX_TOOLWINDOW | WS_EX_NOACTIVATE : 0;
+    WINRT_VERIFY(CreateWindowEx(WS_EX_NOREDIRECTIONBITMAP | offscreenStyle | (_alwaysOnTop ? WS_EX_TOPMOST : 0),
                                 wc.lpszClassName,
                                 L"Windows Terminal",
                                 WS_OVERLAPPEDWINDOW,
@@ -1096,6 +1101,20 @@ void IslandWindow::_SetFullscreenPosition(const RECT& rcMonitor, const RECT& rcW
     _dpiBeforeFullscreen = GetDpiForWindow(hWnd);
     _fWasMaximizedBeforeFullscreen = IsZoomed(hWnd);
     _rcWorkBeforeFullscreen = rcWork;
+
+    // at-terminal --offscreen is full screen over its own rectangle, off every
+    // monitor, and stays behind everything.
+    if (const auto& offscreen = at_offscreen::Window())
+    {
+        SetWindowPos(hWnd,
+                     HWND_BOTTOM,
+                     offscreen->left,
+                     offscreen->top,
+                     offscreen->right - offscreen->left,
+                     offscreen->bottom - offscreen->top,
+                     SWP_FRAMECHANGED | SWP_NOACTIVATE);
+        return;
+    }
 
     SetWindowPos(hWnd,
                  HWND_TOP,

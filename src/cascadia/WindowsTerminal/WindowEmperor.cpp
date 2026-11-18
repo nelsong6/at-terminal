@@ -6,6 +6,7 @@
 
 #include <AtAltTab.h>
 #include <AtLog.h>
+#include <AtOffscreen.h>
 #include <CoreWindow.h>
 #include <ScopedResourceLoader.h>
 #include <WtExeUtils.h>
@@ -361,19 +362,49 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
 #endif
     }
 
-    // Windows Terminal is a single-instance application. Either acquire ownership
-    // over the mutex, or hand off the command line to the existing instance.
-    const auto mutex = acquireMutexOrAttemptHandoff(windowClassName.c_str(), nCmdShow);
-    if (!mutex)
+    // at-terminal --offscreen: window-shot's window, a process of its own beside
+    // the one with Nelson's window (AtOffscreen.h). Its message window gets a
+    // class of its own, so no launch ever hands a commandline to it.
+    std::vector<winrt::hstring> offscreenCommandline;
     {
-        // The command line has been handed off. We can now exit.
-        // We do it with TerminateProcess() primarily to avoid WinUI shutdown issues.
-        at_log::Write("handed off to the running window");
-        TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
-        __assume(false);
+        RECT rect{};
+        switch (at_offscreen::Parse(commandlineToArgArray(GetCommandLineW()), rect, offscreenCommandline))
+        {
+        case at_offscreen::Parsed::Refused:
+            at_log::Write("offscreen refused: usage is --offscreen x,y,width,height commandline");
+            TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(2));
+            __assume(false);
+        case at_offscreen::Parsed::Offscreen:
+            at_offscreen::Window() = rect;
+            fmt::format_to(std::back_inserter(windowClassName), FMT_COMPILE(L" offscreen {}"), GetCurrentProcessId());
+            break;
+        default:
+            break;
+        }
     }
 
-    at_log::Start();
+    // Windows Terminal is a single-instance application. Either acquire ownership
+    // over the mutex, or hand off the command line to the existing instance.
+    wil::unique_mutex mutex;
+    if (!at_offscreen::Active())
+    {
+        mutex = acquireMutexOrAttemptHandoff(windowClassName.c_str(), nCmdShow);
+        if (!mutex)
+        {
+            // The command line has been handed off. We can now exit.
+            // We do it with TerminateProcess() primarily to avoid WinUI shutdown issues.
+            at_log::Write("handed off to the running window");
+            TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
+            __assume(false);
+        }
+
+        at_log::Start();
+    }
+    else
+    {
+        // Not "start": the log's runs are the window's process (AtLog.h).
+        at_log::Write("offscreen window for window-shot");
+    }
 
     // !! LOAD BEARING !!
     // This prevents loader lock contention with some versions of the nvidia
@@ -388,6 +419,31 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
     _app.Logic().ReloadSettings();
 
     _createMessageWindow(windowClassName.c_str());
+
+    if (at_offscreen::Active())
+    {
+        // Its one window, and nothing else: no hotkeys, Alt+Tab, notification
+        // icon, saved layout or default-terminal handoff, which are the window's.
+        const wil::unique_environstrings_ptr envMem{ GetEnvironmentStringsW() };
+        const auto env = stringFromDoubleNullTerminated(envMem.get());
+        const auto cwd = wil::GetCurrentDirectoryW<std::wstring>();
+        _dispatchCommandlineCommon(offscreenCommandline, cwd, env, SW_SHOWNOACTIVATE);
+        _postQuitMessageIfNeeded();
+        if (std::wstring system32; SUCCEEDED_LOG(wil::GetSystemDirectoryW(system32)))
+        {
+            LOG_IF_WIN32_BOOL_FALSE(SetCurrentDirectoryW(system32.c_str()));
+        }
+        MSG msg{};
+        while (GetMessageW(&msg, nullptr, 0, 0))
+        {
+            TranslateMessage(&msg);
+            DispatchMessageW(&msg);
+        }
+        at_log::Write("offscreen exit");
+        TerminateProcess(GetCurrentProcess(), gsl::narrow_cast<UINT>(0));
+        __assume(false);
+    }
+
     _startAltTabHook();
     _setupGlobalHotkeys();
     _checkWindowsForNotificationIcon();
@@ -604,6 +660,12 @@ void WindowEmperor::_dispatchCommandline(winrt::TerminalApp::CommandlineArgs arg
 
     if (const auto msg = args.ExitMessage(); !msg.empty())
     {
+        if (at_offscreen::Active())
+        {
+            // Nothing of window-shot's may pop up a window; it sees the process end.
+            at_log::Write("offscreen refused: the commandline did not parse");
+            return;
+        }
         _showMessageBox(msg, exitCode != 0);
         return;
     }
@@ -1145,7 +1207,8 @@ void WindowEmperor::_finalizeSessionPersistence() const
 {
     using namespace std::string_view_literals;
 
-    if (_skipPersistence)
+    // The off-screen window's layout is not his: saving it would replace his.
+    if (_skipPersistence || at_offscreen::Active())
     {
         // We received WM_ENDSESSION and persisted the state.
         // We don't need to persist it again.
