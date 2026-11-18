@@ -29,6 +29,7 @@ public:
         WM_IDENTIFY_ALL_WINDOWS,
         WM_NOTIFY_FROM_NOTIFICATION_AREA,
         WM_ALT_TAB,
+        WM_WIN_TAP,
     };
 
     HWND GetMainWindow() const noexcept;
@@ -68,7 +69,7 @@ private:
     void _registerHotKey(int index, const winrt::Microsoft::Terminal::Control::KeyChord& hotkey) noexcept;
     void _unregisterHotKey(int index) noexcept;
     void _setupGlobalHotkeys();
-    void _startAltTabHook() const;
+    void _startKeyboardHook() const;
     void _setupSessionPersistence(bool enabled);
     void _persistState(const winrt::Microsoft::Terminal::Settings::Model::ApplicationState& state) const;
     void _finalizeSessionPersistence() const;
@@ -78,6 +79,8 @@ private:
     winrt::TerminalApp::App _app{ nullptr };
     std::vector<std::shared_ptr<::AppHost>> _windows;
     std::vector<winrt::Microsoft::Terminal::Settings::Model::GlobalSummonArgs> _hotkeys;
+    // The summon hotkey bound to Win+`, which a bare Win tap repeats (ATT-16); -1 for none.
+    int _winTapHotkey = -1;
     NOTIFYICONDATA _notificationIcon{};
     UINT WM_TASKBARCREATED = 0;
     HMENU _currentWindowMenu = nullptr;

@@ -7,6 +7,7 @@
 #include <AtAltTab.h>
 #include <AtLog.h>
 #include <AtOffscreen.h>
+#include <AtWinTap.h>
 #include <CoreWindow.h>
 #include <ScopedResourceLoader.h>
 #include <WtExeUtils.h>
@@ -444,7 +445,7 @@ void WindowEmperor::HandleCommandlineArgs(int nCmdShow)
         __assume(false);
     }
 
-    _startAltTabHook();
+    _startKeyboardHook();
     _setupGlobalHotkeys();
     _checkWindowsForNotificationIcon();
     _setupSessionPersistence(_app.Logic().Settings().GlobalSettings().ShouldUsePersistedLayout());
@@ -1134,6 +1135,12 @@ LRESULT WindowEmperor::_messageHandler(HWND window, UINT const message, WPARAM c
                 .lParam = static_cast<LPARAM>(wParam << 16),
             });
             return 0;
+        case WM_WIN_TAP:
+            if (_winTapHotkey >= 0)
+            {
+                _hotkeyPressed(_winTapHotkey);
+            }
+            return 0;
         case WM_QUERYENDSESSION:
             // For WM_QUERYENDSESSION and WM_ENDSESSION, refer to:
             // https://docs.microsoft.com/en-us/windows/win32/rstmgr/guidelines-for-applications
@@ -1413,6 +1420,9 @@ void WindowEmperor::_notificationAreaMenuClicked(const WPARAM wParam, const LPAR
 #pragma endregion
 #pragma region GlobalHotkeys
 
+// Set while a summon hotkey is bound to Win+`; with none, Win stays Windows'.
+static std::atomic<bool> s_winTapOn{ false };
+
 void WindowEmperor::_hotkeyPressed(const long hotkeyIndex)
 {
     if (hotkeyIndex < 0 || static_cast<size_t>(hotkeyIndex) > _hotkeys.size())
@@ -1503,6 +1513,7 @@ void WindowEmperor::_setupGlobalHotkeys()
     }
 
     _hotkeys.clear();
+    _winTapHotkey = -1;
 
     // Re-register all current hotkeys.
     for (const auto& [keyChord, cmd] : _app.Logic().GlobalHotkeys())
@@ -1512,30 +1523,87 @@ void WindowEmperor::_setupGlobalHotkeys()
             const auto index = gsl::narrow_cast<int>(_hotkeys.size());
             _registerHotKey(index, keyChord);
             _hotkeys.emplace_back(summonArgs);
+            const auto modifiers = keyChord.Modifiers();
+            if (_winTapHotkey < 0 && at_win_tap::IsWinBacktick(WI_IsFlagSet(modifiers, VirtualKeyModifiers::Control),
+                                                               WI_IsFlagSet(modifiers, VirtualKeyModifiers::Menu),
+                                                               WI_IsFlagSet(modifiers, VirtualKeyModifiers::Shift),
+                                                               WI_IsFlagSet(modifiers, VirtualKeyModifiers::Windows),
+                                                               keyChord.Vkey()))
+            {
+                _winTapHotkey = index;
+            }
         }
     }
+    s_winTapOn = _winTapHotkey >= 0;
 }
 
 #pragma endregion
-#pragma region AltTab
+#pragma region KeyboardHook
 
-// The hook runs on a thread of its own, so a busy window never holds up the
+// One low-level keyboard hook for Alt+Tab (TMUX-209) and the bare Win tap
+// (ATT-16). It runs on a thread of its own, so a busy window never holds up the
 // desktop's keyboard; it only decides and posts to the message window.
-static std::atomic<HWND> s_altTabTarget{ nullptr };
+static std::atomic<HWND> s_hookTarget{ nullptr };
 static at_alt_tab::Gate s_altTabGate;
+static at_win_tap::Gate s_winTapGate;
+// Marks the mask key the hook sends, so it doesn't read its own key.
+static constexpr ULONG_PTR s_winTapMaskTag = 0x41545754; // "ATWT"
 
-static LRESULT CALLBACK altTabHook(const int code, const WPARAM wParam, const LPARAM lParam) noexcept
+static LRESULT CALLBACK keyboardHook(const int code, const WPARAM wParam, const LPARAM lParam) noexcept
 {
     const auto key = reinterpret_cast<const KBDLLHOOKSTRUCT*>(lParam);
-    if (code == HC_ACTION && key->vkCode == VK_TAB)
+    if (code != HC_ACTION)
     {
-        const auto pressed = [](const int vkey) { return (GetAsyncKeyState(vkey) & 0x8000) != 0; };
+        return CallNextHookEx(nullptr, code, wParam, lParam);
+    }
+    const auto pressed = [](const int vkey) { return (GetAsyncKeyState(vkey) & 0x8000) != 0; };
+    const auto down = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
+
+    if (s_winTapOn.load() && key->dwExtraInfo != s_winTapMaskTag)
+    {
+        // A key already down before this event is a held key's repeat.
+        switch (s_winTapGate.Key(key->vkCode,
+                                 down,
+                                 pressed(static_cast<int>(key->vkCode)),
+                                 pressed(VK_CONTROL) || pressed(VK_MENU) || pressed(VK_SHIFT)))
+        {
+        case at_win_tap::Act::Mask:
+        {
+            // Queued behind this Win press, so Windows sees a key between it
+            // and its release and keeps Start shut. Refused, Start opens too.
+            INPUT mask[2]{};
+            for (auto& input : mask)
+            {
+                input.type = INPUT_KEYBOARD;
+                input.ki.wVk = at_win_tap::MaskKey;
+                input.ki.dwExtraInfo = s_winTapMaskTag;
+            }
+            mask[1].ki.dwFlags = KEYEVENTF_KEYUP;
+            if (SendInput(2, mask, sizeof(INPUT)) != 2)
+            {
+                try
+                {
+                    at_log::Write(fmt::format(FMT_COMPILE("Win tap: mask key refused, error {}"), GetLastError()));
+                }
+                CATCH_LOG();
+            }
+            break;
+        }
+        case at_win_tap::Act::Summon:
+            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_WIN_TAP, 0, 0);
+            break;
+        default:
+            break;
+        }
+    }
+
+    if (key->vkCode == VK_TAB)
+    {
         DWORD foreground = 0;
         if (const auto window = GetForegroundWindow())
         {
             GetWindowThreadProcessId(window, &foreground);
         }
-        const auto down = wParam == WM_KEYDOWN || wParam == WM_SYSKEYDOWN;
         if (s_altTabGate.Take(key->vkCode,
                               down,
                               WI_IsFlagSet(key->flags, LLKHF_ALTDOWN),
@@ -1543,20 +1611,20 @@ static LRESULT CALLBACK altTabHook(const int code, const WPARAM wParam, const LP
                               pressed(VK_LWIN) || pressed(VK_RWIN),
                               foreground == GetCurrentProcessId()))
         {
-            PostMessageW(s_altTabTarget.load(), WindowEmperor::WM_ALT_TAB, key->scanCode, down);
+            PostMessageW(s_hookTarget.load(), WindowEmperor::WM_ALT_TAB, key->scanCode, down);
             return 1;
         }
     }
     return CallNextHookEx(nullptr, code, wParam, lParam);
 }
 
-void WindowEmperor::_startAltTabHook() const
+void WindowEmperor::_startKeyboardHook() const
 {
-    s_altTabTarget = _window.get();
+    s_hookTarget = _window.get();
     std::thread{ [] {
-        if (!SetWindowsHookExW(WH_KEYBOARD_LL, altTabHook, reinterpret_cast<HINSTANCE>(&__ImageBase), 0))
+        if (!SetWindowsHookExW(WH_KEYBOARD_LL, keyboardHook, reinterpret_cast<HINSTANCE>(&__ImageBase), 0))
         {
-            at_log::Write(fmt::format(FMT_COMPILE("Alt+Tab stays with Windows: keyboard hook failed, error {}"), GetLastError()));
+            at_log::Write(fmt::format(FMT_COMPILE("Alt+Tab and the Win tap stay with Windows: keyboard hook failed, error {}"), GetLastError()));
             return;
         }
         MSG msg;

@@ -34,6 +34,16 @@ window (HOMECFG-60, https://openproject.home.romaine.life/wp/HOMECFG-60).
   notification area and Alt+Tab from tmux just bring it forward. A program
   running elevated refuses it and stays. `AtMinimizeOthers.h`; test:
   `AtMinimizeOthersTests`, run by CI.
+- **Win pressed and released on its own does what Win+` does** (ATT-16), from
+  any app. Win with any other key, or with Ctrl, Alt or Shift held, stays
+  Windows'; Ctrl+Esc or the Start button opens Start. Windows opens Start on a
+  Win release with no other key since its press, so when a press could be a tap
+  the keyboard hook (the Alt+Tab one, below) sends one unassigned key (0xE8,
+  AutoHotkey's mask key) while Win is still down; the real Win press and release
+  pass through untouched, so Win is never left stuck down. The tap is on only
+  while a summon hotkey is bound to Win+`. An elevated window in front keeps its
+  keys from the hook, so there Win opens Start as usual. `AtWinTap.h`; test:
+  `AtWinTapTests`, run by CI.
 - **Launching it comes to the front.** When Windows refuses the first window
   the foreground, as it does a program started by a background process, the
   window takes it the way the summon key does.
