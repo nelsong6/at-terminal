@@ -45,7 +45,7 @@ private:
         uint64_t WindowID = 0;
         std::wstring_view WindowName;
         bool OnCurrentDesktop = false;
-        // The summon key only (ATT-13): minimize the other windows on the window's desktop.
+        // Minimize the other windows on the window's desktop (ATT-13, ATT-17).
         bool MinimizeOthers = false;
         winrt::TerminalApp::SummonWindowBehavior SummonBehavior;
     };
@@ -54,7 +54,7 @@ private:
 
     AppHost* _mostRecentWindow() const noexcept;
     bool _summonWindow(const SummonWindowSelectionArgs& args) const;
-    void _summonAllWindows() const;
+    void _summonAllWindows(bool minimizeOthers) const;
     void _dispatchSpecialKey(const MSG& msg) const;
     void _dispatchCommandline(winrt::TerminalApp::CommandlineArgs args);
     void _dispatchCommandlineCommon(winrt::array_view<const winrt::hstring> args, wil::zwstring_view currentDirectory, wil::zwstring_view envString, uint32_t showWindowCommand);

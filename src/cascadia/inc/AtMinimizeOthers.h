@@ -1,8 +1,7 @@
-// Win+` (the summon key) brings at-terminal forward on its own virtual desktop,
-// then minimizes every other window there that can be minimized, so the desktop
-// background shows through the translucent terminal (ATT-13). Only the summon
-// key does this; launching at-terminal again or Alt+Tab from tmux only bring it
-// forward.
+// When he brings at-terminal forward (Win+`, the Win tap, launching it again,
+// Alt+Tab from tmux), every other window on its virtual desktop that can be
+// minimized is, so the desktop background shows through the translucent
+// terminal (ATT-13, ATT-17).
 
 #pragma once
 

@@ -255,7 +255,7 @@ void WindowEmperor::CreateNewWindow(winrt::TerminalApp::WindowRequestedArgs args
     // at-terminal has one window: a request for another brings it forward.
     if (!_windows.empty())
     {
-        _summonAllWindows();
+        _summonAllWindows(true);
         return;
     }
 
@@ -684,7 +684,7 @@ void WindowEmperor::_dispatchCommandline(winrt::TerminalApp::CommandlineArgs arg
         {
             connection.Close();
         }
-        _summonAllWindows();
+        _summonAllWindows(true);
         return;
     }
 
@@ -856,7 +856,10 @@ bool WindowEmperor::_summonWindow(const SummonWindowSelectionArgs& args) const
     return true;
 }
 
-void WindowEmperor::_summonAllWindows() const
+// minimizeOthers: brought forward by him (launched again, Alt+Tab from tmux), so
+// the desktop behind clears as for Win+` (ATT-17). The notification area's
+// re-show passes false: it isn't him asking for the window.
+void WindowEmperor::_summonAllWindows(const bool minimizeOthers) const
 {
     _assertIsMainThread();
 
@@ -868,6 +871,10 @@ void WindowEmperor::_summonAllWindows() const
     for (const auto& window : _windows)
     {
         window->HandleSummon(args);
+        if (minimizeOthers)
+        {
+            window->MinimizeOtherWindows();
+        }
     }
 }
 
@@ -1690,7 +1697,7 @@ void WindowEmperor::_checkWindowsForNotificationIcon()
         // If we no longer want the tray icon, but we did have one, then quick
         // re-summon all our windows, so they don't get lost when the icon
         // disappears forever.
-        _summonAllWindows();
+        _summonAllWindows(false);
     }
 
     _notificationIconShown = needsIcon;

@@ -898,7 +898,7 @@ safe_void_coroutine AppHost::HandleSummon(const winrt::TerminalApp::SummonWindow
     }
 }
 
-// The summon key's second half (ATT-13): with the window in front, minimize every
+// A summon's second half (ATT-13, ATT-17): with the window in front, minimize every
 // other window on its virtual desktop that can be minimized, so the desktop
 // background shows through the terminal. Each is minimized without activating,
 // so the terminal keeps the foreground.
