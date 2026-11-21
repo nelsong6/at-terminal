@@ -3,9 +3,11 @@ name: Build
 # at-terminal's build, the one job no suite covers (PIPT-12): MSBuild in a Windows container
 # over one kept folder on upstairspc. pipeline-templates' release suite numbers the release,
 # drafts it, publishes it and starts home-sync (fleet.json's nelsong6/at-terminal, release
-# part msix); this builds the package. A pull request builds and tests it. On main the release
-# suite dispatches this with the tag it reserved, and this signs the package, uploads it to
-# that draft and hands back to the release suite.
+# part build); this builds the package. A pull request builds and tests it, stamped with the
+# tag its merge would take, and keeps it, so the merge that reserves that tag with the same
+# inputs publishes it without building (pipeline-templates' suites/README.md, A
+# release-external part on a pull request). Otherwise the release suite dispatches this on main
+# with the tag it reserved, and this signs the package, uploads it to that draft and hands back.
 on:
   pull_request:
     types: [opened, synchronize, reopened]
@@ -54,6 +56,7 @@ jobs:
     outputs:
       build: ${{ steps.scope.outputs.build }}
       prefix: ${{ steps.scope.outputs.prefix }}
+      prefix-from: ${{ steps.scope.outputs.prefix-from }}
       suffix: ${{ steps.scope.outputs.suffix }}
       suite-sha: ${{ steps.scope.outputs.suite-sha }}
     steps:
@@ -191,21 +194,21 @@ jobs:
 
       # The one numbering step is the release suite's (PIPT-7): v1.25.N.0 continues the
       # series, so each release's package version is above the last and MSIX upgrades to it.
-      # A release builds the tag the suite reserved; a PR's build is v1.25.N.0-prK.run, the
-      # number its release would take.
+      # A release builds the tag the suite reserved; a PR's build the tag its merge would take
+      # (next), so the merge can publish it instead of building again.
       - id: version
         if: github.event_name == 'pull_request'
         uses: ./_ci/actions/release-version
         with:
           prefix: ${{ needs.scope.outputs.prefix }}
+          prefix-from: ${{ needs.scope.outputs.prefix-from }}
           suffix: ${{ needs.scope.outputs.suffix }}
           publish: 'false'
 
-      # A package version is four numbers, so a build that isn't released takes the number
-      # its release would; the build's file and name carry the whole version.
+      # A package version is four numbers; the build's file and name carry the whole version.
       - name: Package version
         env:
-          FULL: ${{ inputs.release_tag || steps.version.outputs.version }}
+          FULL: ${{ inputs.release_tag || steps.version.outputs.next }}
         run: |
           $build = $env:FULL.Substring(1)
           $package = $build.Split('-')[0]
@@ -299,11 +302,6 @@ jobs:
             Copy-Item -Recurse out "$env:GITHUB_WORKSPACE\dist"
           } finally { Remove-Item -LiteralPath cert.pfx -Force }
 
-      - uses: forgejo/upload-artifact@v4
-        if: github.event_name == 'pull_request'
-        with:
-          name: at-terminal
-          path: dist/*
 
       - uses: forgejo/upload-artifact@v4
         if: failure()
@@ -314,17 +312,26 @@ jobs:
 
       # The package goes to the draft the release suite reserved, which then publishes it
       # and starts home-sync on every PC (AHT-86); a failed build tells it so, and the
-      # release fails rather than waiting on this part.
+      # release fails rather than waiting on this part. On a PR the step packs the files as
+      # the release would and attests what they were built from, and the run keeps them for
+      # the merge to publish.
       - name: Hand the package to the release
-        if: github.event_name == 'workflow_dispatch'
+        id: handoff
         env:
           RELEASE_SERVER_URL: ${{ github.server_url }}
           RELEASE_REPOSITORY: ${{ inputs.release_repository }}
           SOURCE_SHA: ${{ inputs.source_sha }}
           PART_ID: ${{ inputs.part_id }}
-          VERSION: ${{ inputs.release_tag }}
+          VERSION: ${{ inputs.release_tag || steps.version.outputs.next }}
           TOKEN: ${{ secrets.PIPELINE_DISPATCH_TOKEN }}
         run: node _ci/suites/release/complete-external.mjs
+
+      - uses: forgejo/upload-artifact@v4
+        if: github.event_name == 'pull_request'
+        with:
+          name: ${{ steps.handoff.outputs.artifact }}
+          path: dist/*
+          if-no-files-found: error
 
       - name: Tell the release this part failed
         if: failure() && github.event_name == 'workflow_dispatch'

@@ -119,11 +119,13 @@ entry in its `fleet.json`), and the build from `.forgejo/workflows/build.yml`, t
 no suite covers. A PR whose change reaches the build (the suite's `release.build` inputs and
 the entry's own) is built and tested. A `main` commit that changes them is released as
 `v1.25.N.0`, numbered by pipeline-templates' release-version (prefix `v1.25`, suffix `.0`;
-the package version is the tag without its `v`, and a PR's build is `v1.25.N.0-prK.run`,
-its package version the number before the `-`), holding the signed `.msix`, the certificate
+the package version is the tag without its `v`; a PR's build takes the number its merge
+would, release-version's `next`), holding the signed `.msix`, the certificate
 (`at-terminal.cer`) that signs it and `at-protocol.txt`: the suite reserves the tag and a
-draft, dispatches `build.yml` with it (the release part `msix`), which builds, signs and
-uploads the three files and hands back, and the suite's `home-sync.yml` publishes the draft
+draft and, when the merged PR's build made these exact files as that tag (its run keeps them,
+with the fingerprint pipeline-templates' suites/README.md describes under A release-external
+part on a pull request, PIPT-55), publishes them; otherwise it dispatches `build.yml` with the
+tag (the release part `build`), which builds, signs and uploads the three files and hands back, and the suite's `home-sync.yml` publishes the draft
 and starts home-sync on every PC, which installs the newest release (AHT-86), so each merge
 reaches the PCs within minutes, behind the open window's 30-second countdown. A release
 doesn't run the tests again: its PR ran them. The build runs on upstairspc's
